@@ -1,16 +1,22 @@
+"""
+=====Description=====
+File in 'modules/fetch.py'
+To download files(espectially package) files from remote server
+"""
+
 import http.client
 
 
 def common_fetch(url,filename):
-	# 解析URL
+	# Explain URL
 	parsed_url = http.client.urlsplit(url)
 	conn = http.client.HTTPSConnection(parsed_url.netloc)
 	
-	# 发送请求
+	# Send requests
 	conn.request('GET', parsed_url.path)
 	response = conn.getresponse()
 	
-	# 保存文件
+	# Save file
 	with open(filename, 'wb') as file:
 		file.write(response.read())
 	return 0
