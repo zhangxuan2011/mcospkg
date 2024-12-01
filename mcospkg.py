@@ -31,38 +31,38 @@ def file_exist(filename):
 
 def check_is_repocfg_exist():
 	"""This check if repo configuation file exists. If yes, return True, else return False."""
-	if file_exist(CONFIG_DIR + '/repo.conf'):
-		return True
-	return False
+    if file_exist(CONFIG_DIR + '/repo.conf'):
+        return True
+    return False
 
 def preset():
-	"""This will prepare to run the program, automatically check the important things."""
-	if check_is_repocfg_exist():	# The repocfg is the essential.
-		repos = [] 	# This will get repo.conf status
-		with open(CONFIG_DIR + '/repo.conf') as file:
-			for line in file.readlines():
-				parts = line.strip().split('=')
-				repos.extend(parts)
-		repos.pop(-1) 	# Delete the unusual thing
-		"""Now the list 'repos' has a regularity:
-			if subscript is evennum, this is the reponame
+    """This will prepare to run the program, automatically check the important things."""
+    if check_is_repocfg_exist():	# The repocfg is the essential.
+        repos = [] 	# This will get repo.conf status
+        with open(CONFIG_DIR + '/repo.conf') as file:
+            for line in file.readlines():
+                parts = line.strip().split('=')
+                repos.extend(parts)
+        repos.pop(-1) 	# Delete the unusual thing
+        """Now the list 'repos' has a regularity:
+        	if subscript is evennum, this is the reponame
 			Otherwise, it the repo url."""
 		
-		# Get repo name and repo url(split them)
-		reponame = []
-		repourl = []
-		for subscript in range(0, len(repos) - 1, 2):
-			reponame.append(repos[subscript])
-		for subscript in range(len(repos)):
-			if subscript % 2 != 0:
-				repourl.append(repos[subscript])
-		...
+        # Get repo name and repo url(split them)
+        reponame = []
+        repourl = []
+        for subscript in range(0, len(repos) - 1, 2):
+            reponame.append(repos[subscript])
+        for subscript in range(len(repos)):
+            if subscript % 2 != 0:
+                repourl.append(repos[subscript])
+        ...
 
 ## Define essential options
 def download(packages):
-	...
+    ...
 
 # Load args
 if __name__ == "__main__":
-	args = parser.parse_args()
-	preset()
+    args = parser.parse_args()
+    preset()
