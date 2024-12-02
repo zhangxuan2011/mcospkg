@@ -4,8 +4,8 @@ from modules import pgb, color
 import json
 
 # Define args for input
-parser = argparse.ArgumentParser(description='Install/Remove/Update packages by using mcospkg')
-parser.add_argument("options", type=str, help="Define Options for package(options are: install/remove/update)")
+parser = argparse.ArgumentParser(description='Install/Remove/Update/Download packages by using mcospkg')
+parser.add_argument("options", type=str, help="Define Options for package(options are: install/remove/update/download)")
 parser.add_argument("packages", type=str, nargs="*", help="Define the target package.")
 parser.add_argument('-y', '--bypass', action='store_true', help="To bypass asking install/remove/update packages")
 
@@ -30,13 +30,15 @@ def file_exist(filename):
         return True
 
 def check_is_repocfg_exist():
-    """This check if repo configuation file exists. If yes, return True, else return False."""
+    """This check if repo configuation file exists.
+    If yes, return True, else return False."""
     if file_exist(CONFIG_DIR + '/repo.conf'):
         return True
     return False
 
 def preset():
-    """This will prepare to run the program, automatically check the important things."""
+    """This will prepare to run the program, automatically check the important things.
+    If something wrong, it will return a int value(if return=0 it hasn't problems.)"""
     if check_is_repocfg_exist():	# The repocfg is the essential.
         repos = [] 	# This will get repo.conf status
         with open(CONFIG_DIR + '/repo.conf') as file:
@@ -56,9 +58,17 @@ def preset():
         for subscript in range(len(repos)):
             if subscript % 2 != 0:
                 repourl.append(repos[subscript])
-        ...
+        
+        # Check if REPOINFO exists
+        for repo in reponame:
+            infofile = f"{CONFIG_DIR}/database/remote/{repo}.json"
+            if not file_exist(infofile):
+                return 2
+           with open(infofile) as file:
+               json.load(file)
+            ...
 
-## Define essential options
+# Define essential options
 def download(packages):
     ...
 
