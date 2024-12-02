@@ -30,7 +30,7 @@ def file_exist(filename):
         return True
 
 def check_is_repocfg_exist():
-	"""This check if repo configuation file exists. If yes, return True, else return False."""
+    """This check if repo configuation file exists. If yes, return True, else return False."""
     if file_exist(CONFIG_DIR + '/repo.conf'):
         return True
     return False
