@@ -64,9 +64,10 @@ def preset():
             infofile = f"{CONFIG_DIR}/database/remote/{repo}.json"
             if not file_exist(infofile):
                 return 2
-           with open(infofile) as file:
-               json.load(file)
-            ...
+            with open(infofile) as file:
+                json.load(file)
+                print(file.read())
+            
 
 # Define essential options
 def download(packages):
