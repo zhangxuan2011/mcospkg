@@ -25,15 +25,16 @@ def add(name, url):
     new_repocfg = f"{name}={url}\n"
     with open(CONFIG_DIR + "/repo.conf", mode="a") as f: 
         f.writelines(new_repocfg)
-    print(f"{color.green}ok{color.end}: repo added successfully!")
+    print(f"{color.green}ok{color.end}: repository \"{name}\" added successfully!")
 
 if __name__ == "__main__":
     # Parse command line arguments
     args = parser.parse_args()
     # Check if no argument input
-    if args.command == None:
-        print(f"{color.red}error{color.end}: no input argument found\nuse argument \"-h\" for help.")
-        sys.exit(2)
-    if args.command == "add":
-        add(args.reponame, args.repourl)
+    match args.command:
+        case None:
+            print(f"{color.red}error{color.end}: no input argument\nuse argument \"-h\" for help.")
+            sys.exit(2)
+        case "add":
+            add(args.reponame, args.repourl)
 
