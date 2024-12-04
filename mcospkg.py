@@ -1,7 +1,10 @@
 import argparse
 import os
 from modules import pgb, color
+from modules.file import check_file_exist as file_exist
 import json
+from sys import argv
+import sys
 
 # Define args for input
 parser = argparse.ArgumentParser(description='Install/Remove/Update/Download packages by using mcospkg')
@@ -17,18 +20,6 @@ CONFIG_DIR = 'etc/mcospkg'	# To build replace to '/etc/mcospkg'
 CACHE_DIR = 'var/cache/mcospkg'	# To build replace to '/var/cache/mcospkg'
 
 ## Define optional options
-def file_exist(filename):
-    """This function checks is file exist.
-    If yes, return True, otherwise return False."""
-    
-    try:
-        f = open(filename, "r")
-    except:
-        return False
-    else:
-        f.close()
-        return True
-
 def check_is_repocfg_exist():
     """This check if repo configuation file exists.
     If yes, return True, else return False."""
@@ -48,7 +39,7 @@ def preset():
         repos.pop(-1) 	# Delete the unusual thing
         """Now the list 'repos' has a regularity:
         	if subscript is evennum, this is the reponame
-			Otherwise, it the repo url."""
+			Otherwise, it's the repo url."""
 		
         # Get repo name and repo url(split them)
         reponame = []
@@ -60,10 +51,15 @@ def preset():
                 repourl.append(repos[subscript])
         
         # Check if REPOINFO exists
+        if not os.path.exists(f"{CONFIG_DIR}/database/remote"): # Ensure remote path is exist
+            os.mkdir(f"{CONFIG_DIR}/database")
+            os.mkdir(f"{CONFIG_DIR}/database/remote")
+        
         for repo in reponame:
             infofile = f"{CONFIG_DIR}/database/remote/{repo}.json"
             if not file_exist(infofile):
-                return 2
+                print(f"{argv[0]}: {color.red}error{color.end}: repository index \"{repo}\" not found\nUse \"mcospkg-mirror update\" to download.")
+                sys.exit(2)
             with open(infofile) as file:
                 json.load(file)
                 print(file.read())
