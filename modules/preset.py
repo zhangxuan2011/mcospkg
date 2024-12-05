@@ -1,25 +1,45 @@
-from file import check_file_exist as file_exist
+"""
+DESCRIPTION
+This uses in mcospkg stage "preset", as a module
+
+REASON
+Because it needs to use in most of files.
+To obey "DRY" principle, we have to merge it in a code
+By the way, cause it needs lots of variable "CONFIG_DIR", so we 
+write it as a class.
+
+USAGE
+import it by using "from modules.preset import Preset" in the rootof directory,
+and the function "Preset" need to input 1 argument: CONFIG_DIR
+and... you know :)
+
+NOTE
+Run it straightly will got exception!!!
+"""
+
+# Import essential modules
+from modules.file import check_file_exist as file_exist
 from sys import argv
-import color
+from modules import color
 import json
 import os
 
-class preset:
+class Preset:
     def __init__(self, CONFIG_DIR):
+        # Initialize objects
         self.CONFIG_DIR = CONFIG_DIR
         self.repos = [] 	# This will get repo.conf status
         self.reponame = []
         self.repourl = []
     
-
-    def check_is_repocfg_exist(CONFIG_DIR):
+    def check_is_repocfg_exist(self):
         """This check if repo configuation file exists.
         If yes, return True, else return False."""
-        if file_exist(CONFIG_DIR + '/repo.conf'):
+        if file_exist(self.CONFIG_DIR + '/repo.conf'):
             return True
         return False
 
-    def split_repo_name_url():
+    def split_repo_name_url(self):
         # Get repo name and repo url(split them)
         for subscript in range(0, len(self.repos) - 1, 2):
             self.reponame.append(self.repos[subscript])
@@ -27,11 +47,11 @@ class preset:
             if subscript % 2 != 0:
                 self.repourl.append(self.repos[subscript])
 
-    def check_repo_conf_exist(CONFIG_DIR):
+    def check_repo_conf_exist(self):
         """This will prepare to run the program, automatically check the important things.
         If something wrong, it will return a int value(if return=0 it hasn't problems.)"""
         if self.check_is_repocfg_exist():	# The repocfg is the essential.
-            with open(CONFIG_DIR + '/repo.conf') as file:
+            with open(self.CONFIG_DIR + '/repo.conf') as file:
                 for line in file.readlines():
                     parts = line.strip().split('=')
                     self.repos.extend(parts)

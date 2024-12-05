@@ -1,10 +1,13 @@
 import argparse
 import os
 from modules import pgb, color
+from modules.preset import Preset
 from modules.file import check_file_exist as file_exist
 import json
 from sys import argv
 import sys
+
+
 
 # Define args for input
 parser = argparse.ArgumentParser(description='Install/Remove/Update/Download packages by using mcospkg')
@@ -26,4 +29,4 @@ def download(packages):
 # Load args
 if __name__ == "__main__":
     args = parser.parse_args()
-    preset()
+    Preset(CONFIG_DIR)
