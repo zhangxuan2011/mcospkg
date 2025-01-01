@@ -1,10 +1,2 @@
-LICENSE
-
-# The module importation will generate this dir so ignore it
-__pycache__/*
-
-# It is the same
-modules/__pycache__/*
-
-# Do not see the output dirs.
-output/*
+/target
+/pymodules/__pycache__

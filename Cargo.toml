@@ -1,0 +1,17 @@
+[package]
+name = "mcospkg"
+version = "0.1.0"
+authors = ["zhangxuan2011 <zx20110412@outlook.com>"]
+edition = "2024"
+
+[package.metadata]
+license = "GPL3"
+repository = "https://github.com/zhangxuan2011/mcospkg"
+
+
+[dependencies]
+clap = { version = "4.5.23", features = ["derive"] }
+
+[[bin]]
+name = "mcospkg-mirror"
+path = "src/bin/mirror.rs"
