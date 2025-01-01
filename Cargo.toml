@@ -8,9 +8,10 @@ edition = "2024"
 license = "GPL3"
 repository = "https://github.com/zhangxuan2011/mcospkg"
 
-
 [dependencies]
 clap = { version = "4.5.23", features = ["derive"] }
+colored = "2.2.0"
+pyo3 = { version = "0.23.3", features = ["auto-initialize", "extension-module"] }
 
 [[bin]]
 name = "mcospkg-mirror"
