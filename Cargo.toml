@@ -2,17 +2,24 @@
 name = "mcospkg"
 version = "0.1.0"
 authors = ["zhangxuan2011 <zx20110412@outlook.com>"]
-edition = "2024"
+edition = "2021"
 
 [package.metadata]
-license = "GPL3"
+license = "GPL-3.0"
 repository = "https://github.com/zhangxuan2011/mcospkg"
 
 [dependencies]
 clap = { version = "4.5.23", features = ["derive"] }
 colored = "2.2.0"
-pyo3 = { version = "0.23.3", features = ["auto-initialize", "extension-module"] }
+pyo3 = { version = "0.23.3", features = ["auto-initialize"] }
 
+# This is the binary file define area
+# The file format: mcospkg-xxx
+# Filename: src/xxx.rs
 [[bin]]
 name = "mcospkg-mirror"
-path = "src/bin/mirror.rs"
+path = "src/mirror.rs"
+
+[[bin]]
+name = "mcospkg-info"
+path = "src/info.rs"

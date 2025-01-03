@@ -1,13 +1,16 @@
 // This only be used in linux platform, so we difine it:
 #[cfg(target_os = "linux")]
 
-use clap::Parser;
+// Now, we need to import some modules:
+use clap::Parser;   // Argument parser
 
+// Configure parser
 #[derive(Parser, Debug)]
 #[command(name = "mcospkg")]
 #[command(about = "A linux package-manager made for MinecraftOS (Main program)")]
 #[command(version = "0.1.0-debug")]
 
+// Define argument lists
 struct Args {
     #[arg(required = true, help = "Supports: install/remove/update")]
     options: String,
@@ -21,5 +24,7 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
-    println!("mcospkg {} {:#?} , bypass={}", args.options, args.packages, args.bypass_ask);
+    match args {
+        _ => todo!(),
+    };    
 }
