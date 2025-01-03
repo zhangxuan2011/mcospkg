@@ -1,6 +1,3 @@
-// This only be used in linux platform, so we difine it:
-#[cfg(target_os = "linux")]
-
 // Now, we need to import some modules:
 use clap::Parser;   // Argument parser
 
