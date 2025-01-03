@@ -32,9 +32,23 @@ fn main() {
 
     // And, let's check the condition:
     match args.info_type.as_str() {
-        "default" => println!("Mcospkg, producted by a 13-year-old boy.\n\nThis program uses license GPL-3.0, Repository URLS is https://github.com/zhangxuan2011/mcospkg; Executable files are: \n\tmcospkg, \n\tmcospkg-mirror, \n\tmcospkg-info\n\nUsage:...."),
-        "os-license" => println!("License uses GPL-3.0"),
-        "repo-site" => println!("https://github.com/zhangxuan2011/mcospkg"),
+        "default" => println!("{}\n\n{} in this program, Repository URLS is {};\n\nExecutable files are: \n\tmcospkg, \n\tmcospkg-mirror, \n\tmcospkg-info\n\n", introduce(), os_license(), repo_site()),
+        "os-license" => println!("{}", os_license()),
+        "repo-site" => println!("{}",repo_site()),
+        "usage" => println!(""),
+        "introduce" => println!("{}", introduce()),
         &_ => println!("{}: unknown options", error),
     }
+}
+
+fn introduce() -> String {
+    String::from("Mcospkg, producted by a 13-year-old boy.")
+}
+
+fn os_license() -> String {
+    String::from("Uses license GPL-3.0")
+}
+
+fn repo_site() -> String {
+    String::from("https://github.com/zhangxuan2011/mcospkg")
 }

@@ -21,7 +21,13 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
-    match args {
+    match args.options.as_str() {
+        "install" => install(args.packages),
+        "remove" => remove(args.packages),
         _ => todo!(),
     };    
 }
+
+fn install(pkgindex: Vec<String>) {}
+
+fn remove(pkgindex: Vec<String>) {}
