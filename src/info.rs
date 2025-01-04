@@ -1,4 +1,4 @@
-// Well, this usually use to print the information of the
+// Well, this usually in use to print the information of the
 // mcospkg, and its usage.
 //
 // This supports to give you a lot of ibformation type, and 
