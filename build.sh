@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # This help you to build the mcosokg automatically without
 # building by yourself.
@@ -16,7 +16,7 @@ PREFIX="/usr/local"	# You can specify another path
 
 # Also, you need to install these dependencies:
 # 	python(<=3.12, with pip) - Some module(s) written by using python;
-# 	rust(<=2021 Edition, with cargo) - mainly using rust;
+# 	rust(<=2021 Edition, with cargo) - mainly using rust, needs to compile;
 #
 # Well, in different operating system(OS), python is different
 # name, such as python/python3, so you need to define it:
@@ -41,14 +41,39 @@ echo ""
 # So, let's do:
 echo "Step 2: Building project via cargo..."
 echo "=====OUTPUT====="
-cargo build --release
+cargo build --release -j8
 echo "=====END OF OUTPUT====="
 echo ""
 
 # Third, we need to intergrate it to the structure like /usr.
 # Note: Building things are in target/release
-#
 echo "Step 3: Intergrating file structure..."
-mkdir -p ./target/intergrated
-cd target
-find . -type f -name "mcospkg*"! -name "*.*" -print -exec cp {} "intergrated/" \;
+cd target	  # Do something in generated dirs
+mkdir -p intergrated	# Make the dir to build the structure
+mkdir -p intergrated/bin   # This uses in receiving bins
+cd release	# So... you know
+rm *.d	# First, we need to kill the .d file(They are fucking bad things)
+cp mcospkg* ../intergrated/bin	# And, copy them
+cd ../intergrated	# Finally, we have leave the dir
+mkdir -p etc var	# Make structure continuly
+
+# And, we needs to generate a configuration file (in etc)
+cd etc	# Enter and so something...
+echo "main=https://zhangxuan2011.github.io/mcospkg/repo/main" > repo.conf	# Write configuration, you can also define a repo by yourself(This is default)
+mkdir -p database   # Make the database dir
+mkdir -p database/remote    # And, this will save the remote package info
+mkdir -p database/locals    # This saves the locally installed packages information
+cd ..
+
+# We've done the working in etc, now in var.
+cd var
+mkdir -p cache	# Cache only
+mkdir -p cache/mcospkg
+mkdir -p cache/mcospkg/pkgs
+cd ../..
+
+# And, that's completed!
+echo "Done! project now in target/intergrated"
+echo "Cleaning cache file(s)..."
+rm -r release
+echo "Done! Quiting..."
