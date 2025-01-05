@@ -1,54 +1,54 @@
 # Mcospkg
 Welcome to use mcospkg, a linux package manager by a 13-year-old boy
 
-This uses in MinecraftOS, a **linux** operating system for Minecraft players
+This project uses in MinecraftOS, a **linux** operating system for Minecraft players
 
 ## Description
-This imagine by a 12-year-old boy (THE SAME PERSON) at first, cause there's less package manager by Chinese, so as a Chinese young man and developer, I, and my team, will take this mission on.
-
-## Usage
-In mcospkg(main):
-
-`mcospkg [-h] [-y] options [packages ...]`
-
-In it:
-```
-    -h: Help message;
-
-    -y: Bypass asking;
-
-    options: Define a options to install packages
-
-    [packages ...] : Define package for options
-```
+This project imagine by a 12-year-old boy (THE SAME PERSON) at first, cause there's less package manager by Chinese, so as a Chinese young man and developer, I, and my team, will take this mission on.
 
 ## Build & Install
 To build it, ensure you had installed these applications(packages):
- - make
- - python (>=3.12.7)
+
+ - python(>=3.12)
+ - Rust(stable, latest, with Cargo)
  - gcc/clang
  - git
 
 After installing it, follow these steps:
 
 1, Clone from repository
+
 Run this command:
 
-` git clone https://github.com/zhangxuan2011/mcospkg.git`
+```bash
+git clone https://github.com/zhangxuan2011/mcospkg.git
+cd mcospkg
+```
 
-2, Configure Makefile
-Find the variable define Dept., and modify the variable's value by your want
+2, Configure build.sh
 
-3, Use `make` to prepare modules
-After step 2, run
+Find the variable define prefix, python(pip) executable name, and modify the variable's value by your want
 
-`make prepare` ,
+3, Build
 
-This will install essential modules it's ever used.
+Now, you just need to run these commands:
+```bash
+chmod +x build.sh
+./build.sh
+```
+This will help you to build the mcospkg into the directory in `target/intergrated`.
 
-4, Run `make -j8`
-This will generate the executable file in directory `output`(Or other dir you defined).
+4, Install
 
-5, Use `make install` to install it.
+Run:
+```bash
+sudo ./build.sh install
+```
+This command will help you to install mcospkg into the prefix you've defined
 
-
+5, Uninstall
+If you don't want mcospkg in your computer, you just need to run:
+```bash
+sudo ./build.sh remove
+```
+**Attention!** You must build from this repository before you run it, otherwise we don't care about it if you get something worse!!!!!
