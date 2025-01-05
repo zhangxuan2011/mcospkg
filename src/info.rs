@@ -25,7 +25,7 @@ struct Args {
 // Fourth, let's do it!
 fn main() {
     // Define the colorful text
-    let error = "error".red();
+    let error = "error".red().bold();
 
     // Parse args
     let args = Args::parse();

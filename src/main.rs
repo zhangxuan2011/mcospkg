@@ -1,13 +1,14 @@
 // First, we should declare the lib
 mod library {
     pub mod file;
+    pub mod cfg;
 }
 
 // Now, we need to import some modules:
 use clap::Parser;
 use std::collections::HashMap;
 use colored::Colorize;
-use std::fs;
+use crate::library::cfg::readcfg;
 use std::process::exit;
 
 // Configure parser
@@ -29,7 +30,7 @@ struct Args {
 }
 
 fn main() {
-    let error = "error".red();
+    let error = "error".red().bold();
     let args = Args::parse();
     match args.options.as_str() {
         "install" => install(args.packages),
@@ -39,35 +40,30 @@ fn main() {
 }
 
 fn install(pkgindex: Vec<String>) {
-    let error = "error".red();
+    let error = "error".red().bold();
+    let tip = "tip".green().bold();
     // Stage 1: Explain the package
-    //// First, we read the configuration file
-    let mut repoconf_raw = fs::read_to_string("/etc/mcospkg/repo.conf").expect("Failed to read /etc/mcospkg/repo.conf, check is it exists");
-    
-    //// Second, make it cleaner
-    repoconf_raw = repoconf_raw
-        .replace(" ", "")
-        .replace("\t", "");
-
-    //// Third, we convert it to the HashMap
-    let mut repoconf: HashMap<&str, &str> = HashMap::new();
-    for line in repoconf_raw.lines() {
-        if let Some((key, value)) = line.split_once('=') {
-            repoconf.insert(key, value);
-        }
-    }
+    // First, load configuration and get its HashMap
+    let repoconf = readcfg();
     let repoindex = repoconf.keys();
     
-    //// Fourth, check if index is exist
+    // Second, check if index is exist
     let mut repopath = String::new();
+    let mut errtime = 0;
     for reponame in repoindex {
         repopath = format!("/etc/mcospkg/database/remote/{}.json", reponame);
+        // If index not exist, just quit
         if! library::file::check_file_exist(&repopath) {
-            println!("{}: Repository index {} not exist\n\tTip: use \"mcospkg-mirror update\" to download it.", error, reponame);
-            exit(1);
+            println!("{}: Repository index \"{}\" not exist", error, reponame);
+            errtime += 1;
         }
     }
+    if errtime > 0 {
+        println!("{}: use \"{}\" to download it.", tip, "mcospkg-mirror update".cyan());
+        exit(1);
+    }
 
+    // Next, read the configuration
 
 }
 
