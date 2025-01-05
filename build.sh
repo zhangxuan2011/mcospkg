@@ -12,7 +12,7 @@
 # 	./build.sh install - Install it after building;
 # 	./build.sh remove - Remove it from the prefix
 # So, we need a prefix to do these, now we define it:
-PREFIX="/usr/local"	# You can specify another path
+PREFIX="/usr"	# You can specify another path
 
 # Also, you need to install these dependencies:
 # 	python(<=3.12, with pip) - Some module(s) written by using python;
@@ -26,6 +26,49 @@ PYTHON_NAME="python"	# Usually choose in "python" or "python3"
 PIP_NAME="pip" # Usually choose in "pip" or "pip3"
 
 # So the configure is basically completed. Now, we'll start thr coding to build/install/remove the project.
+#
+# We define the install/remove method:
+remove() {
+      local choice
+      echo "Are you sure to remove mcospkg from your computer?(Enter Y or the other)"
+      read choice
+      if [ "$choice" != "Y" ] && [ "$choice" != "y" ]; then
+            echo "Canceled the uninstallation"
+            exit 1
+      fi
+
+      # So, let's start our remove works:
+      rm $PREFIX/bin/mcospkg*
+      rm -r $PREFIX/etc/mcospkg
+      rm -r $PREFIX/var/cache/mcospkg
+      echo "Ok: seems the works are completed."
+      echo "See you next time!"
+      exit 0
+}
+install() {
+      echo "Moving project root to $PREFIX..."
+      if [ ! -d target/intergrated ]; then
+            echo "Error: Build file not found! Quiting..."
+	    exit 1
+      fi
+
+      # Start to copy
+      echo "=====OUTPUT====="
+      cp -rv target/intergrated/* $PREFIX
+      echo "=====END OF OUTPUT====="
+      echo "Installation completed."
+      exit 0
+}
+
+# Well, we need to check that should we install/remove this 
+# project to the linux system. We needs to input an argument
+# to check it, so we do:
+if [ "$1" = "install" ]; then
+	echo "Performing install..."
+	install
+elif [ "$1" = "remove" ]; then
+	remove
+fi
 
 # Step 1: install dependencies in python
 # Now, we'll install dependencies in your python environment,
@@ -58,7 +101,8 @@ cd ../intergrated	# Finally, we have leave the dir
 mkdir -p etc var	# Make structure continuly
 
 # And, we needs to generate a configuration file (in etc)
-cd etc	# Enter and so something...
+mkdir -p etc/mcospkg
+cd etc/mcospkg	# Enter and so something...
 echo "main=https://zhangxuan2011.github.io/mcospkg/repo/main" > repo.conf	# Write configuration, you can also define a repo by yourself(This is default)
 mkdir -p database   # Make the database dir
 mkdir -p database/remote    # And, this will save the remote package info
@@ -77,3 +121,4 @@ echo "Done! project now in target/intergrated"
 echo "Cleaning cache file(s)..."
 rm -r release
 echo "Done! Quiting..."
+

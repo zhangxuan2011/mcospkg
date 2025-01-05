@@ -37,7 +37,7 @@ fn main() {
         "repo-site" => println!("{}",repo_site()),
         "usage" => println!(""),
         "introduce" => println!("{}", introduce()),
-        &_ => println!("{}: unknown options", error),
+        &_ => println!("{}: unknown options: {}", error, args.info_type),
     }
 }
 
