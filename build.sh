@@ -12,7 +12,7 @@
 # 	./build.sh install - Install it after building;
 # 	./build.sh remove - Remove it from the prefix
 # So, we need a prefix to do these, now we define it:
-PREFIX="/usr"	# You can specify another path
+PREFIX="/"	# You can specify another path
 
 # Also, you need to install these dependencies:
 # 	python(<=3.12, with pip) - Some module(s) written by using python;
@@ -107,7 +107,7 @@ echo "main=https://zhangxuan2011.github.io/mcospkg/repo/main" > repo.conf	# Writ
 mkdir -p database   # Make the database dir
 mkdir -p database/remote    # And, this will save the remote package info
 mkdir -p database/locals    # This saves the locally installed packages information
-cd ..
+cd ../..
 
 # We've done the working in etc, now in var.
 cd var
