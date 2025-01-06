@@ -11,7 +11,8 @@ repository = "https://github.com/zhangxuan2011/mcospkg"
 [dependencies]
 clap = { version = "4.5.23", features = ["derive"] }
 colored = "2.2.0"
-pyo3 = { version = "0.23.3", features = ["auto-initialize"] }
+indicatif = "0.17.9"
+reqwest = { version = "0.12.12", features = ["blocking"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 

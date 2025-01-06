@@ -9,9 +9,7 @@ pub fn readcfg() -> HashMap<String, String> {
     );
 
     // Second, make it cleaner
-    repoconf_raw = repoconf_raw
-        .replace(" ", "")
-        .replace("\t", "");
+    repoconf_raw = repoconf_raw.replace(" ", "").replace("\t", "");
 
     // Third, we convert it to the HashMap
     let mut repoconf: HashMap<String, String> = HashMap::new();
@@ -20,7 +18,7 @@ pub fn readcfg() -> HashMap<String, String> {
             repoconf.insert(key.to_string(), value.to_string());
         }
     }
-    
+
     // Finally, return it
     repoconf
 }
