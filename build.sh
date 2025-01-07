@@ -74,7 +74,7 @@ fi
 # First, we need to build the main rust code.
 # That's very easy, just need to use cargo to build it.
 # So, let's do:
-echo "Step 2: Building project via cargo..."
+echo "Step 1: Building project via cargo..."
 echo "=====OUTPUT====="
 cargo build --release -j20
 echo "=====END OF OUTPUT====="
@@ -82,7 +82,7 @@ echo ""
 
 # Second, we need to intergrate it to the structure like /usr.
 # Note: Building things are in target/release
-echo "Step 3: Intergrating file structure..."
+echo "Step 2: Intergrating file structure..."
 cd target	  # Do something in generated dirs
 mkdir -p intergrated	# Make the dir to build the structure
 mkdir -p intergrated/bin   # This uses in receiving bins
