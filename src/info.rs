@@ -18,8 +18,8 @@ use colored::Colorize;  // To show colorful text(in var "error")
 
 // Third, we need to define a struct, it shows the argument options.
 struct Args {
-    #[arg(required = false, help = "Specify a Information type, Support: os-license, repo-site, default", default_value_t = String::from("default"))]
-    info_type: String,  // The info type, its only a string
+    #[arg(required = false, help = "Specify a Information type, Support: os-license, repo-site, all", default_value_t = String::from("all"))]
+    info_type: String,  // The info type, it's only a string
 }
 
 // Fourth, let's do it!
@@ -32,12 +32,12 @@ fn main() {
 
     // And, let's check the condition:
     match args.info_type.as_str() {
-        "default" => println!("{}\n\n{} in this program, Repository URLS is {};\n\nExecutable files are: \n\tmcospkg, \n\tmcospkg-mirror, \n\tmcospkg-info\n\n", introduce(), os_license(), repo_site()),
+        "all" => println!("{}\n\n{} in this program, Repository URLS is {};\n\nExecutable files are: \n\tmcospkg, \n\tmcospkg-mirror, \n\tmcospkg-info\n\n", introduce(), os_license(), repo_site()),
         "os-license" => println!("{}", os_license()),
         "repo-site" => println!("{}",repo_site()),
         "usage" => println!(""),
         "introduce" => println!("{}", introduce()),
-        &_ => println!("{}: unknown options: {}", error, args.info_type),
+        &_ => println!("{}: unknown options: {}\n{}: Supports arguments are: os-license, repo-site, all", error, args.info_type, "tip".bold().green()),
     }
 }
 

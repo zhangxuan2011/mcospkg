@@ -33,17 +33,26 @@ fn main() {
 
 fn update() {
     let error = "error".red().bold();
+
     // First, we read the configuration file
-    let repoconf: HashMap<String, String> = readcfg(); // This in crate::library::cfg
+    let repoconf: HashMap<String, String> = readcfg();
     let repoindex: Vec<(String, String)> = repoconf.into_iter().map(|(k, v)| (k, v)).collect();
     
+    // Fill the repo_msgs
+    let mut repo_msgs: Vec<&'static str> = Vec::new();
+    for (reponame, _) in repoindex.clone() {
+        let msg = format!("{}", reponame);
+        let msg = Box::leak(msg.into_boxed_str());
+        repo_msgs.push(msg);
+    }
+
     // Second, download the file
     println!("Updating index file...");
-    for (reponame, repourl) in repoindex {
+    for ((reponame, repourl), msg) in repoindex.into_iter().zip(repo_msgs.into_iter()) {
         if let Err(errmsg) = download(
             format!("{}/PKGINDEX.json", repourl),
             format!("/etc/mcospkg/database/remote/{}.json", reponame),
-            "Download",
+            msg,
         ) {
             println!("{}: {}", error, errmsg);
         }

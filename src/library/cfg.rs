@@ -3,10 +3,7 @@ use std::fs;
 
 pub fn readcfg() -> HashMap<String, String> {
     // First, read the configuration
-    let mut repoconf_raw = fs::read_to_string("/etc/mcospkg/repo.conf").expect(
-        "Failed to read /etc/mcospkg/repo.conf, check
- is it exists",
-    );
+    let mut repoconf_raw = fs::read_to_string("/etc/mcospkg/repo.conf").expect("Failed to open \"/etc/mcospkg/repo.conf\".");
 
     // Second, make it cleaner
     repoconf_raw = repoconf_raw.replace(" ", "").replace("\t", "");
