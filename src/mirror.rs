@@ -9,7 +9,6 @@ use crate::library::cfg::readcfg;
 use crate::library::download::download;
 use clap::Parser;
 use colored::Colorize;
-use std::collections::HashMap;
 use std::process::exit;
 
 #[derive(Parser, Debug)]
@@ -23,12 +22,13 @@ struct Args {
 }
 
 fn main() {
+    let error = "error".red().bold();
     let args = Args::parse();
     match args.option.as_str() {
         "update" => update(),
         "add" => add(),
         "delete" => delete(),
-        _ => println!("{}: unknown option: {}", error, args.options),
+        _ => println!("{}: unknown option: {}", error, args.option),
     }
 }
 

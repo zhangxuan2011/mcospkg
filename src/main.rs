@@ -36,10 +36,10 @@ struct Args {
 fn main() {
     let error = "error".red().bold();
     let args = Args::parse();
-    match args.options.as_str() {
+    match args.option.as_str() {
         "install" => install(args.packages),
         "remove" => remove(args.packages),
-        _ => println!("{}: unknown option: {}", error, args.options),
+        _ => println!("{}: unknown option: {}", error, args.option),
     };
 }
 
