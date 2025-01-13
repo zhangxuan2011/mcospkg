@@ -14,7 +14,7 @@ use colored::Colorize;  // To show colorful text(in var "error")
 #[derive(Parser, Debug)]
 #[command(name = "mcospkg-info")]
 #[command(about = "Information of mcospkg")]
-#[command(version = "0.1.0-debug")] // The version is same as the main's.
+#[command(version = "0.1.1-debug")] // The version is same as the main's.
 
 // Third, we need to define a struct, it shows the argument options.
 struct Args {

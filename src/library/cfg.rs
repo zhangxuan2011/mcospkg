@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 use std::fs;
+use std::io::{Error, ErrorKind};
 
-pub fn readcfg() -> HashMap<String, String> {
+pub fn readcfg() -> Result<HashMap<String, String>, Error> {
     // First, read the configuration
-    let mut repoconf_raw = fs::read_to_string("/etc/mcospkg/repo.conf").expect("Failed to open \"/etc/mcospkg/repo.conf\".");
-
+    let mut repoconf_raw = fs::read_to_string("/etc/mcospkg/repo.conf")
+        .map_err(|_| Error::new(ErrorKind::Other, "Repository config file \"/etc/mcospkg/repo.conf\" not found"))?;
     // Second, make it cleaner
     repoconf_raw = repoconf_raw.replace(" ", "").replace("\t", "");
 
@@ -17,5 +18,6 @@ pub fn readcfg() -> HashMap<String, String> {
     }
 
     // Finally, return it
-    repoconf
+    Ok(repoconf)
 }
+

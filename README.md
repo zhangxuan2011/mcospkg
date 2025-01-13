@@ -9,16 +9,17 @@ This project imagine by a 12-year-old boy (THE SAME PERSON) at first, cause ther
 ## Build & Install
 To build it, ensure you had installed these applications(packages):
 
- - python(>=3.12)
  - Rust(stable, latest, with Cargo)
- - gcc/clang
+ - gcc/clang(with cc)
+ - openssl & libssl-dev
+ - pkg-config
  - git
 
 After installing it, follow these steps:
 
 1, Clone from repository
 
-Run this command:
+Run these commands:
 
 ```bash
 git clone https://github.com/zhangxuan2011/mcospkg.git

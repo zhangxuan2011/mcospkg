@@ -14,7 +14,7 @@ use std::path::Path;
 #[derive(Parser, Debug)]
 #[command(name = "mcospkg")]
 #[command(about = "A linux package-manager made for MinecraftOS (Main program)")]
-#[command(version = "0.1.0-debug")]
+#[command(version = "0.1.1-debug")]
 
 // Define argument lists
 struct Args {
@@ -48,13 +48,27 @@ fn install(pkgindex: Vec<String>) {
     let tip = "tip".green().bold();
     // Stage 1: Explain the package
     // First, load configuration and get its HashMap
-    let repoconf = readcfg();
-    let repoindex = repoconf.keys();
+    let repoindex: Vec<(String, String)>;
+    match readcfg() {
+        Err(e) => {
+            println!("{}: {}", error, e);
+            println!(
+                "{}: Consider using this format to write to that file:\n\t{}",
+                "note".bold().green(),
+                "[reponame] = [repourl]".cyan()
+            );
+            exit(2)
+        },
+        Ok(repoconf) => {
+            repoindex = repoconf.into_iter().map(|(k, v)| (k,
+v)).collect();
+        }
+    }
 
     // Second, check if index is exist
-    let _repopath: String = String::new();
-    let mut errtime = 0;
-    for reponame in repoindex {
+    let _repopath: String = String::new();  //  We'll use it later
+    let mut errtime = 0;    // This will record the error times
+    for (reponame, _) in repoindex {
         let repopath = format!("/etc/mcospkg/database/remote/{}.json", reponame);
         // If index not exist, just quit
         if! Path::new(&repopath).exists() {

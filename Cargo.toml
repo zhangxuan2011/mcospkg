@@ -1,6 +1,6 @@
 [package]
 name = "mcospkg"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["zhangxuan2011 <zx20110412@outlook.com>"]
 edition = "2021"
 
