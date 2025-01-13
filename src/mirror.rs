@@ -40,13 +40,19 @@ fn update() {
     match readcfg() {
         Err(e) => {
             println!("{}: {}", error, e);
+            println!(
+                "{}: Consider using this format to write to th
+at file:\n\t{}",
+                "note".bold().green(),
+                "[reponame] = [repourl]".cyan()
+            );
             exit(2);
-        },
+        }
         Ok(repoconf) => {
             repoindex = repoconf.into_iter().map(|(k, v)| (k, v)).collect();
-        },
+        }
     }
-    
+
     // Fill the repo_msgs
     let mut repo_msgs: Vec<&'static str> = Vec::new();
     for (reponame, _) in repoindex.clone() {

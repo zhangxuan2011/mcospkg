@@ -12,9 +12,7 @@ pub fn download(url: String, save: String, msg: &'static str) -> Result<(), Erro
     let pb = ProgressBar::new(resp.content_length().unwrap_or(0));
     pb.set_style(
         ProgressStyle::default_bar()
-            .template(
-                "{msg} [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})\n",
-            )
+            .template("{msg} [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})\n")
             .unwrap()
             .progress_chars("##-"),
     );
@@ -25,8 +23,9 @@ pub fn download(url: String, save: String, msg: &'static str) -> Result<(), Erro
     loop {
         match resp.read(&mut buffer) {
             Ok(bytes_read) if bytes_read > 0 => {
-                file.write_all(&buffer[0..bytes_read])
-                    .map_err(|e| Error::new(ErrorKind::Other, format!("Cannot write file: {}", e)))?;
+                file.write_all(&buffer[0..bytes_read]).map_err(|e| {
+                    Error::new(ErrorKind::Other, format!("Cannot write file: {}", e))
+                })?;
                 downloaded_bytes += bytes_read;
                 pb.set_position(downloaded_bytes as u64);
             }

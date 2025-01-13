@@ -4,8 +4,12 @@ use std::io::{Error, ErrorKind};
 
 pub fn readcfg() -> Result<HashMap<String, String>, Error> {
     // First, read the configuration
-    let mut repoconf_raw = fs::read_to_string("/etc/mcospkg/repo.conf")
-        .map_err(|_| Error::new(ErrorKind::Other, "Repository config file \"/etc/mcospkg/repo.conf\" not found"))?;
+    let mut repoconf_raw = fs::read_to_string("/etc/mcospkg/repo.conf").map_err(|_| {
+        Error::new(
+            ErrorKind::Other,
+            "Repository config file \"/etc/mcospkg/repo.conf\" not found",
+        )
+    })?;
     // Second, make it cleaner
     repoconf_raw = repoconf_raw.replace(" ", "").replace("\t", "");
 
@@ -20,4 +24,3 @@ pub fn readcfg() -> Result<HashMap<String, String>, Error> {
     // Finally, return it
     Ok(repoconf)
 }
-

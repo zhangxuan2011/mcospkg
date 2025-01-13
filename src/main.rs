@@ -19,7 +19,7 @@ use std::path::Path;
 // Define argument lists
 struct Args {
     #[arg(required = true, help = "Supports: install/remove/update")]
-    options: String,
+    option: String,
 
     #[arg(required = false)]
     packages: Vec<String>,
