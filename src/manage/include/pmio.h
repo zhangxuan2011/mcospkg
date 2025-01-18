@@ -3,7 +3,7 @@
 #endif
 
 #include <stdio.h>
-#include "modules/TextAttributes.h"
+#include "TextAttributes.h"
 
 inline void putn(const char* str){
     printf("%s",str);
