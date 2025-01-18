@@ -19,7 +19,7 @@ int exists(char* file_name){
     }
     return 0;
 }
-int exists(char* directory, char* file_name){
+int exists_with_directory(char* directory, char* file_name){
     int full_path_length = strlen(directory) + 1 + strlen(file_name) + 1;
     char* full_path = (char*) malloc(full_path_length);
     snprintf(full_path, full_path_length, "%s/%s", directory, file_name);
