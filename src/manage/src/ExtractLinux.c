@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 int extractArchiveLinux(const char* fileName, const char* extractPath){ //tar.xz
-    int commandLength = strlen("tar -xJf  -C ") + strlen(fileName) + strlen(extractPath); // Get string length for alloc
+    int commandLength = strlen("tar -xzf  -C ") + strlen(fileName) + strlen(extractPath); // Get string length for alloc
     char* command = (char*)malloc(commandLength); // Alloc Memory space
     sprintf(command, "tar -xJf %s -C %s", fileName, extractPath);
     //execute
