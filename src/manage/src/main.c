@@ -19,10 +19,24 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include "pmio.h"
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <errno.h>
 #include "Extract.h"
 
-void cleanOperation(const work_path){ // NOTE:Run it in last, and don't do anything
+void registerRemoveInfo(const work_path, char* package_name){ // Memory Unsafe!!
+    mkdir("/etc/mcospkg/database/remove_info", 777);
+    // 1. Copy script
+    int unhook_file_length = strlen(work_path) + strlen("/UNHOOKS") + 1;
+    char* unhook_file = (char*) malloc(unhook_file_length);
+    snprintf(unhook_file, unhook_file_length, "%s%s", work_path, unhook_file);
+
+    int copy_command_length = strlen("sudo cp ") + unhook_file_length + 35 + strlen(package_name) + strlen("-UNHOOKS");
+    char* copy_command = (char*) malloc(copy_command_length);
+    snprintf(copy_command, copy_command_length, "sudo cp %s /etc/mcospkg/database/remove_info/%s-UNHOOKS", unhook_file, work_path);
+}
+
+void cleanOperation(char* work_path, char* package_name){ // NOTE:Run it in last, and don't do anything
     // 1. Run script
     int last_script_file_length = strlen(work_path) + strlen("/HOOKS") + 1;
     char *last_script_file = (char*) malloc(last_script_file_length); // Alloc memory space
@@ -34,10 +48,11 @@ void cleanOperation(const work_path){ // NOTE:Run it in last, and don't do anyth
 
     system(script_command);
     // 2. Clean Directory
+    registerRemoveInfo(work_path, package_name);
     rmdir(work_path);
 }
 
-int installPackageFromSource(char* work_path){ // NOTE:ONLY FOR TEST
+int installPackageFromSource(char* work_path, char* package_name){ // NOTE:ONLY FOR TEST
     // 1. Prepare to build
     int build_script_file_length = strlen(work_path) + strlen("/BUILD-SCRIPT") + 1;
     char *build_script_file = (char*) malloc(build_script_file_length); // Alloc memory space
@@ -53,12 +68,12 @@ int installPackageFromSource(char* work_path){ // NOTE:ONLY FOR TEST
     system(build_command);
 
     // 3. Clean
-    cleanOperation();
+    cleanOperation(work_path, package_name);
 
     return 0;
 }
 
-int installPackage(char* package_path){ // NOTE:DON'T RUN IT!
+int installPackage(char* package_path, char* package_name){ // NOTE:DON'T RUN IT!
     // 1. Create temp directory
     char directory_template[] = "/tmp/pkgTmpDirXXXXXX";
     char *temp_directory_name = mkdtemp(directory_template);
@@ -70,10 +85,10 @@ int installPackage(char* package_path){ // NOTE:DON'T RUN IT!
     snprintf(build_script_file, build_script_file_length, "%s/BUILD-SCRIPT", temp_directory_name); // Memory safe version
 
     struct stat stat_buffer; // Just a buffer
-    if(stat(build_script_file, &buffer) == -1 && errno == ENOENT){ // File not found,FIXED
+    if(stat(build_script_file, &stat_buffer) == -1 && errno == ENOENT){ // File not found,FIXED
         // TODO: Copy files to /
     }else{
-        installPackageFromSource(temp_directory_name); // Build from source code
+        installPackageFromSource(temp_directory_name, package_name); // Build from source code
     }
 
     return 0;
