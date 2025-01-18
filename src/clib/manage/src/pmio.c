@@ -2,6 +2,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <errno.h>
+#include <stdlib.h>
+#include <string.h>
 
 int exists(char* file_name){
     struct stat stat_buffer; // Just a buffer
