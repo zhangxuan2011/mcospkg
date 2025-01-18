@@ -1,3 +1,0 @@
-/root/mcospkg/src/manage/CMakeFiles/pkgmgr.dir
-/root/mcospkg/src/manage/CMakeFiles/edit_cache.dir
-/root/mcospkg/src/manage/CMakeFiles/rebuild_cache.dir

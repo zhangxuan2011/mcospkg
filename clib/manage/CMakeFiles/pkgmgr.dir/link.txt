@@ -1,2 +1,0 @@
-/usr/bin/ar qc libpkgmgr.a CMakeFiles/pkgmgr.dir/src/ExtractLinux.c.o CMakeFiles/pkgmgr.dir/src/TextAttributes.c.o CMakeFiles/pkgmgr.dir/src/main.c.o CMakeFiles/pkgmgr.dir/src/pmio.c.o
-/usr/bin/ranlib libpkgmgr.a
