@@ -16,12 +16,12 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************]]#
 
- cmake_minimum_required(VERSION 2.8.0)
+ cmake_minimum_required(VERSION 2.8)
 
-project(mcospkg_manage C)
-
-include_directories(${PROJECT_SOURCE_DIR}/include)
-
-file(GLOB_RECURSE SRC_FILES "src/*.c")
-
-add_library(pkgmgr STATIC ${SRC_FILES})
+ project(mcospkg_manage C)
+ 
+ include_directories(${PROJECT_SOURCE_DIR}/include)
+ 
+ file(GLOB_RECURSE SRC_FILES "src/*.c")
+ 
+ add_library(pkgmgr STATIC ${SRC_FILES})

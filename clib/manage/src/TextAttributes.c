@@ -1,11 +1,9 @@
 #include <stdio.h>
 #include "TextAttributes.h"
-
 void _flush(){ //刷新缓冲区
     fflush(stdout);
     fflush(stderr);
 }
-
 void tColorBlack(){
     printf("\e[0;30m");
     _flush();
@@ -70,7 +68,6 @@ void tColorLightCyan(){
     printf("\e[1;36m");
     _flush();
 }
-
 void textattr_bold(){
     printf("\e[1m");
     _flush();
@@ -91,7 +88,6 @@ void textattr_clear(){
     printf("\e[2J");
     _flush();
 }
-
 void textAttr_reset(){ // reset text attributes
     printf("\033[0m");
     _flush();
