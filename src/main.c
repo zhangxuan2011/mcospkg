@@ -221,7 +221,7 @@ int installPackage(char* package_path, char* package_name){
     int unhook_file_length = strlen(temp_directory_name) + strlen("/UNHOOKS") + 1;
     char *unhook_file = (char*) malloc(unhook_file_length); // Alloc memory space
     snprintf(unhook_file, unhook_file_length, "%s/UNHOOKS", temp_directory_name); // Memory safe version
-    if(!(exists(hook_file) && exists(unhook_file))){
+    if(!(exists(hook_file) || exists(unhook_file))){
         releaseObject(hook_file, build_script_file);
         tColorRed();
         textAttr_bold();

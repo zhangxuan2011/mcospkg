@@ -8,9 +8,9 @@
 int exists(char* file_name){
     struct stat stat_buffer; // Just a buffer
     if(stat(file_name, &stat_buffer) == -1 && errno == ENOENT){ // File not found,FIXED
-        return -1;
+        return 0; // FALSE
     }
-    return 0;
+    return 1; // TRUE
 }
 
 int exists_with_directory(char* directory, char* file_name){
