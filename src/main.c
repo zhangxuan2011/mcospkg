@@ -22,6 +22,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <errno.h>
+#include <dirent.h>
 #include "Extract.h"
 #include "pmio.h"
 #include "TextAttributes.h"
@@ -83,7 +84,6 @@ int installPackageFromSource(char* work_path, char* package_name){ // NOTE:ONLY 
     return 0;
 }
 
-<<<<<<< HEAD
 char* substr(const char* str, int start, int len) {
     // 获取字符串的长度
     int str_len = strlen(str);
@@ -200,9 +200,6 @@ int installPackageDirectly(char* work_path, char* package_name){
 
 int installPackage(char* package_path, char* package_name){
     mkdir("/etc/mcospkg/database", 777);
-=======
-int installPackage(char* package_path, char* package_name){ // NOTE:DON'T RUN IT!
->>>>>>> 77310d21e27e803dc0d5d30d8ac8c87aa609e0b2
     // 1. Create temp directory
     char directory_template[] = "/tmp/pkgTmpDirXXXXXX";
     char *temp_directory_name = mkdtemp(directory_template);
