@@ -193,9 +193,15 @@ int installPackageDirectly(char* work_path, char* package_name){
             strcpy(source_path, buffer);
             copy_file(source_path, buffer);
             strcpy(buffer, "");
+            free(source_path);
         }
         buffer[buffer_length++] = now_char;
     }
+    close(fp);
+    // 3. Run HOOKS file and clean directory
+    cleanOperation(work_path, package_name);
+    // 4. Clean pointers
+    free(index_path);
 }
 
 int installPackage(char* package_path, char* package_name){
