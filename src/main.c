@@ -27,10 +27,8 @@
 #include "pmio.h"
 #include "TextAttributes.h"
 
-void releaseObject(char* unhook_file, char* hook_file, char* temp_directory_name, char* build_script_file){ // NOTE:IMPORTANT!!!!
-    free(unhook_file);
+void releaseObject(char* hook_file, char* build_script_file){ // NOTE:IMPORTANT!!!!
     free(hook_file);
-    free(temp_directory_name);
     free(build_script_file);
 }
 
@@ -154,7 +152,7 @@ void getDirectoryIndex(char* work_path, char* path, char* name, char* index_path
             FILE* fp = fopen(index_path, "w+");
             prefixPath(work_path, full_path);
             fprintf(fp, "%s\n", full_path);
-            close(fp);
+            fclose(fp);
         }else if(entry->d_type == 4){ // Directory
             getDirectoryIndex(new_path, work_path, entry->d_name, index_path);
         }
@@ -170,7 +168,7 @@ int copy_file(char* src, char* target){ // TODO: Rewrite it in future!
     int copy_file_length = 13 + strlen(src) + strlen(target) + 1;
     char *copy_file = (char*) malloc(copy_file_length);
     snprintf(copy_file, copy_file_length, "sudo cp \"%s\" \"%s\"", src, target);
-    printf("CMD:%s\n", copy_file);
+    system(copy_file);
     return 0;
 }
 
@@ -183,12 +181,12 @@ int installPackageDirectly(char* work_path, char* package_name){
     getDirectoryIndex(work_path, work_path, "", package_name);
     // 2. Copy files
     FILE *fp = fopen(index_path, "r+");
-    char now_char = '/0';
+    char now_char = ' ';
     char buffer[FILENAME_MAX];
     int buffer_length = -1;
     while((now_char = getc(fp)) != EOF){
         if(now_char == '\n'){
-            char source_path = (char*) malloc(4096);
+            char* source_path = (char*) malloc(4096);
             strcpy(source_path, work_path);
             strcpy(source_path, buffer);
             copy_file(source_path, buffer);
@@ -197,7 +195,7 @@ int installPackageDirectly(char* work_path, char* package_name){
         }
         buffer[buffer_length++] = now_char;
     }
-    close(fp);
+    fclose(fp);
     // 3. Run HOOKS file and clean directory
     cleanOperation(work_path, package_name);
     // 4. Clean pointers
@@ -224,7 +222,7 @@ int installPackage(char* package_path, char* package_name){
     char *unhook_file = (char*) malloc(unhook_file_length); // Alloc memory space
     snprintf(unhook_file, unhook_file_length, "%s/UNHOOKS", temp_directory_name); // Memory safe version
     if(!(exists(hook_file) && exists(unhook_file))){
-        releaseObject(unhook_file, hook_file, temp_directory_name, build_script_file);
+        releaseObject(hook_file, build_script_file);
         tColorRed();
         textAttr_bold();
         printf("E: ");
@@ -239,6 +237,10 @@ int installPackage(char* package_path, char* package_name){
     }else{
         installPackageFromSource(temp_directory_name, package_name); // Build from source code
     }
-    releaseObject(unhook_file, hook_file, temp_directory_name, build_script_file);
+    releaseObject(hook_file, build_script_file);
     return 0;
+}
+
+int main(){ // NOTE: ONLY FOR TEST, REMOVE IT WHEN TEST FINISHED.
+    installPackage("/home/xiaokuai/桌面/MCOSPKG-TEST-ENVIRONMENT/app1/app1.tar.xz", "app1");
 }
