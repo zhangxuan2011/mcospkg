@@ -22,7 +22,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <errno.h>
-#include <dirent.h>
 #include "Extract.h"
 #include "pmio.h"
 #include "TextAttributes.h"
@@ -40,6 +39,7 @@ void registerRemoveInfo(char* work_path, char* package_name){ // Memory Unsafe!!
     int unhook_file_length = strlen(work_path) + strlen("/UNHOOKS") + 1;
     char* unhook_file = (char*) malloc(unhook_file_length);
     snprintf(unhook_file, unhook_file_length, "%s%s", work_path, unhook_file);
+
     int copy_command_length = strlen("sudo cp ") + unhook_file_length + 35 + strlen(package_name) + strlen("-UNHOOKS");
     char* copy_command = (char*) malloc(copy_command_length);
     snprintf(copy_command, copy_command_length, "sudo cp %s /etc/mcospkg/database/remove_info/%s-UNHOOKS", unhook_file, work_path);
@@ -52,9 +52,11 @@ void cleanOperation(char* work_path, char* package_name){ // NOTE:Run it in last
     int last_script_file_length = strlen(work_path) + strlen("/HOOKS") + 1;
     char *last_script_file = (char*) malloc(last_script_file_length); // Alloc memory space
     snprintf(last_script_file, last_script_file_length, "%s/HOOKS", work_path); // Memory safe version
+
     int script_command_length = strlen("sudo ") + last_script_file_length;
     char *script_command = (char*) malloc(script_command_length); // Alloc memory space
     snprintf(script_command, script_command_length, "sudo %s", last_script_file); // Memory safe version
+
     system(script_command);
     // 2. Clean Directory
     registerRemoveInfo(work_path, package_name);
@@ -81,6 +83,7 @@ int installPackageFromSource(char* work_path, char* package_name){ // NOTE:ONLY 
     return 0;
 }
 
+<<<<<<< HEAD
 char* substr(const char* str, int start, int len) {
     // 获取字符串的长度
     int str_len = strlen(str);
@@ -197,6 +200,9 @@ int installPackageDirectly(char* work_path, char* package_name){
 
 int installPackage(char* package_path, char* package_name){
     mkdir("/etc/mcospkg/database", 777);
+=======
+int installPackage(char* package_path, char* package_name){ // NOTE:DON'T RUN IT!
+>>>>>>> 77310d21e27e803dc0d5d30d8ac8c87aa609e0b2
     // 1. Create temp directory
     char directory_template[] = "/tmp/pkgTmpDirXXXXXX";
     char *temp_directory_name = mkdtemp(directory_template);
@@ -206,6 +212,7 @@ int installPackage(char* package_path, char* package_name){
     int build_script_file_length = strlen(temp_directory_name) + strlen("/BUILD-SCRIPT") + 1;
     char *build_script_file = (char*) malloc(build_script_file_length); // Alloc memory space
     snprintf(build_script_file, build_script_file_length, "%s/BUILD-SCRIPT", temp_directory_name); // Memory safe version
+
     int hook_file_length = strlen(temp_directory_name) + strlen("/HOOKS") + 1;
     char *hook_file = (char*) malloc(hook_file_length); // Alloc memory space
     snprintf(hook_file, hook_file_length, "%s/HOOKS", temp_directory_name); // Memory safe version
