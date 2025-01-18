@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "modules/TextAttributes.h"
+#include "TextAttributes.h"
 
 void _flush(){ //刷新缓冲区
     fflush(stdout);
