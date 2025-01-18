@@ -22,9 +22,9 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <errno.h>
-#include "Extract.h"
-#include "pmio.h"
-#include "TextAttributes.h"
+#include "include/Extract.h"
+#include "include/pmio.h"
+#include "include/TextAttributes.h"
 void releaseObject(char* unhook_file, char* hook_file, char* temp_directory_name, char* build_script_file){ // NOTE:IMPORTANT!!!!
     free(unhook_file);
     free(hook_file);
