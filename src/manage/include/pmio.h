@@ -30,4 +30,6 @@ inline void putn(long long unsigned int num){
     printf("%llu",num);
 }
 void putError(const char* message);
-int exists(char* fileName);
+
+int exists(char* file_name);
+int exists_with_directory(char* directory, char* file_name);
