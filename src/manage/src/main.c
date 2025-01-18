@@ -23,6 +23,7 @@
 #include <sys/types.h>
 #include <errno.h>
 #include "Extract.h"
+#include "pmio.h"
 
 void registerRemoveInfo(const work_path, char* package_name){ // Memory Unsafe!!
     mkdir("/etc/mcospkg/database/remove_info", 777);
@@ -84,8 +85,8 @@ int installPackage(char* package_path, char* package_name){ // NOTE:DON'T RUN IT
     char *build_script_file = (char*) malloc(build_script_file_length); // Alloc memory space
     snprintf(build_script_file, build_script_file_length, "%s/BUILD-SCRIPT", temp_directory_name); // Memory safe version
 
-    struct stat stat_buffer; // Just a buffer
-    if(stat(build_script_file, &stat_buffer) == -1 && errno == ENOENT){ // File not found,FIXED
+    
+    if(exists(build_script_file)){
         // TODO: Copy files to /
     }else{
         installPackageFromSource(temp_directory_name, package_name); // Build from source code
