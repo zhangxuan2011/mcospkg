@@ -30,3 +30,4 @@ inline void putn(long long unsigned int num){
     printf("%llu",num);
 }
 void putError(const char* message);
+int exists(char* fileName);
