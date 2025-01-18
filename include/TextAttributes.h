@@ -1,6 +1,7 @@
 #ifndef TEXTATTRIBUTES_H
     #define TEXTATTRIBUTES_H
 #endif
+
 void tColorBlack();
 void tColorRed();
 void tColorGreen();
