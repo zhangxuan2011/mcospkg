@@ -27,6 +27,7 @@
 #include "pmio.h"
 #include "TextAttributes.h"
 
+
 void releaseObject(char* hook_file, char* build_script_file){ // NOTE:IMPORTANT!!!!
     free(hook_file);
     free(build_script_file);

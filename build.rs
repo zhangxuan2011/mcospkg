@@ -7,6 +7,8 @@ fn main() {
     let out_dir = PathBuf::from("target/release");
 
     let mut build = cc::Build::new();
+    build.flag("--std=c99");
+    build.flag("-D_GNU_SOURCE");
     for entry in src_dir.read_dir().expect("Failed to read src directory") {
         let entry = entry.expect("Failed to read entry in src directory");
         let path = entry.path();
@@ -19,4 +21,3 @@ fn main() {
     build.out_dir(&out_dir);
     build.compile("pkgmgr");
 }
-
