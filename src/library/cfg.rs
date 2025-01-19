@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::fs;
 use std::io::{Error, ErrorKind};
-use serde::{Deserialize, Serialize};
 
 pub fn readcfg() -> Result<HashMap<String, String>, Error> {
     // First, read the configuration

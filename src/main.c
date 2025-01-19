@@ -74,12 +74,18 @@ int installPackageFromSource(char* work_path, char* package_name){ // NOTE:NOT T
     char *build_script_file = (char*) malloc(build_script_file_length); // Alloc memory space
     snprintf(build_script_file, build_script_file_length, "%s/BUILD-SCRIPT", work_path); // Memory safe version
     chmod(build_script_file, 777); // Mode 777
-    // 2. Start build
+    // 2. Change to the working directory
+    if (chdir(work_path) != 0) {
+        perror("chdir failed");
+        free(build_script_file);
+        return -1;
+    }
+    // 3. Start build
     int build_command_length = strlen("sudo ") + build_script_file_length;
     char *build_command = (char*) malloc(build_command_length); // Alloc memory space
     snprintf(build_command, build_command_length, "sudo %s", build_script_file);
     system(build_command);
-    // 3. Clean
+    // 4. Clean
     cleanOperation(work_path, package_name);
     free(build_script_file);
     free(build_command);
@@ -214,20 +220,26 @@ int installPackageDirectly(char* work_path, char* package_name){
     return 0;
 }
 
-void run_unhooks(char* package_name){
+int run_unhooks(char* package_name){
     int unhook_file_length = strlen("/etc/mcospkg/database/remove_info/-UNHOOKS") + strlen(package_name) + 1;
     char* unhook_file = (char*) malloc(unhook_file_length);
     snprintf(unhook_file, unhook_file_length, "/etc/mcospkg/database/remove_info/%s-UNHOOKS", package_name);
 
-    chmod(unhook_file, 777);
+    if (exists(unhook_file)) {
+        chmod(unhook_file, 777);
 
-    char* unhook_command = malloc(5 + unhook_file_length);
-    strcpy(unhook_command, "sudo ");
-    strcat(unhook_command, unhook_file);
+        char* unhook_command = malloc(5 + unhook_file_length);
+        strcpy(unhook_command, "sudo ");
+        strcat(unhook_command, unhook_file);
 
-    system(unhook_command);
+        system(unhook_command);
+        free(unhook_command);
+    } else {
+        return -1;
+    }
 
-    remove(unhook_file);
+    free(unhook_file);
+    return 0;
 }
 
 void removePackage(char* package_name){
@@ -235,7 +247,7 @@ void removePackage(char* package_name){
     int index_path_length = strlen("/etc/mcospkg/database/remove_info/-file-index") + strlen(package_name) + 1;
     char* index_path = (char*) malloc(index_path_length);
     snprintf(index_path, index_path_length, "/etc/mcospkg/database/remove_info/%s-file-index", package_name);
-    if(exists(index_path)){ // Directly
+    if (exists(index_path)){ // Directly
         FILE* fp = fopen(index_path, "r");
         char *line = NULL;
         size_t len = 0;
@@ -252,7 +264,14 @@ void removePackage(char* package_name){
         run_unhooks(package_name);
     }else{ // BUILD-SCRIPTS
         // Run UNHOOKS and done.
-        run_unhooks(package_name);
+        if (run_unhooks(package_name) == -1) {
+            tColorRed();
+            printf("E: ");
+            textAttr_reset();
+            printf("Package has been removed!\n");
+            free(index_path);
+            exit(-1);
+        }
     }
     free(index_path);
 }
@@ -267,13 +286,13 @@ int installPackage(char* package_path, char* package_name){
         tColorRed();
         printf("E: ");
         textAttr_reset();
-        printf("Package exists!");
+        printf("Package exists!\n");
         exit(-1);
     }
     // 2. Create temp directory
     char directory_template[] = "/tmp/pkgTmpDirXXXXXX";
     char *temp_directory_name = mkdtemp(directory_template);
-    // 3. Unpacked package
+    // 3. Unpack package
     extractArchiveLinux(package_path, temp_directory_name);
     // 4. Build or copy
     int build_script_file_length = strlen(temp_directory_name) + strlen("/BUILD-SCRIPT") + 1;

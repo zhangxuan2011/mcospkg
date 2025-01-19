@@ -4,6 +4,7 @@ use cc;
 fn main() {
     let src_dir = Path::new("src");
     let include_dir = Path::new("include");
+    let out_dir = Path::new("target/lib");
 
     // Check if the include directory exists
     if !include_dir.exists() {
@@ -20,9 +21,13 @@ fn main() {
             build.file(path);
         }
     }
+
+    // Configure and build the pkgmgr library
     build.include(include_dir);
-    build.flag("-std=c89");
-    build.flag("-O3");
-    build.shared_flag(true);
+    build.out_dir(&out_dir);
     build.compile("pkgmgr");
+
+    // Tell Rust to link against the pkgmgr library
+    println!("cargo:rustc-link-lib=static=pkgmgr");
+    println!("cargo:rustc-link-search=native=lib");
 }

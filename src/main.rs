@@ -9,12 +9,14 @@ use clap::Parser;
 use colored::Colorize;
 use std::process::exit;
 use std::collections::HashMap;
+use std::ffi::CString;
 use std::path::Path;
 use libc::{c_char, c_int};
 
 // Import C Libs(libpkgmgr.a)
 extern "C" {
     fn installPackage(package_path: *const c_char, package_name: *const c_char) -> c_int;
+    fn removePackage(package_name: *const c_char) -> c_int;
 }
 
 // Configure parser
@@ -101,23 +103,7 @@ fn install(pkglist: Vec<String>) {
     }
 
     // And, read the PKGINDEX
-    let mut pkgindex: HashMap<String, String> = HashMap::new();
-    for (reponame, _) in &repoindex {
-        let repopath = format!("/etc/mcospkg/database/remote/{}.json", reponame);
-        let repojson: serde_json::Value = match serde_json::from_str(&std::fs::read_to_string(repopath).unwrap()) {
-            Ok(v) => v,
-            Err(e) => {
-                println!("{}: {}", error, e);
-                exit(1);
-            }
-        };
-        for pkg in repojson.as_array().unwrap() {
-            pkgindex.insert(pkg["name"].as_str().unwrap().to_string(), pkg["url"].as_str().unwrap().to_string());
-        }
-    }
-
-    println!("{:?}", pkgindex)
-
+    
 }
 
-fn remove(pkgindex: Vec<String>) {}
+fn remove(_pkgindex: Vec<String>) {}
