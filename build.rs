@@ -1,10 +1,14 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use cc;
 
 fn main() {
     let src_dir = Path::new("src");
     let include_dir = Path::new("include");
-    let out_dir = PathBuf::from("target/release");
+
+    // Check if the include directory exists
+    if !include_dir.exists() {
+        panic!("Include directory does not exist");
+    }
 
     let mut build = cc::Build::new();
     build.flag("--std=c99");
@@ -17,7 +21,8 @@ fn main() {
         }
     }
     build.include(include_dir);
-    build.static_flag(true);
-    build.out_dir(&out_dir);
+    build.flag("-std=c89");
+    build.flag("-O3");
+    build.shared_flag(true);
     build.compile("pkgmgr");
 }

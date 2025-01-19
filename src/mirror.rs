@@ -11,6 +11,7 @@ use clap::Parser;
 use colored::Colorize;
 use std::process::exit;
 
+// And then we define the arguments
 #[derive(Parser, Debug)]
 #[command(name = "mcospkg-mirror")]
 #[command(about = "The mirror list manager of mcospkg")]
@@ -41,8 +42,7 @@ fn update() {
         Err(e) => {
             println!("{}: {}", error, e);
             println!(
-                "{}: Consider using this format to write to th
-at file:\n\t{}",
+                "{}: Consider using this format to write to that file:\n\t{}",
                 "note".bold().green(),
                 "[reponame] = [repourl]".cyan()
             );

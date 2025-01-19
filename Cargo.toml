@@ -12,12 +12,13 @@ repository = "https://github.com/zhangxuan2011/mcospkg"
 clap = { version = "4.5.23", features = ["derive"] }
 colored = "3.0.0"
 indicatif = "0.17.9"
-keon = "0.1.1"
+libc = "0.2.169"
 reqwest = { version = "0.12.12", features = ["blocking"] }
 serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0.135"
 
 [build-dependencies]
-cc = "1.0"
+cc = "1.2.10"
 
 # This is the binary file define area
 # The file format: mcospkg-xxx

@@ -8,7 +8,14 @@ use crate::library::cfg::readcfg;
 use clap::Parser;
 use colored::Colorize;
 use std::process::exit;
+use std::collections::HashMap;
 use std::path::Path;
+use libc::{c_char, c_int};
+
+// Import C Libs(libpkgmgr.a)
+extern "C" {
+    fn installPackage(package_path: *const c_char, package_name: *const c_char) -> c_int;
+}
 
 // Configure parser
 #[derive(Parser, Debug)]
@@ -43,12 +50,12 @@ fn main() {
     };
 }
 
-fn install(pkgindex: Vec<String>) {
+fn install(pkglist: Vec<String>) {
     let error = "error".red().bold();
     let tip = "tip".green().bold();
     // Stage 1: Explain the package
     // First, load configuration and get its HashMap
-    let repoindex: Vec<(String, String)>;
+    let repoindex: Vec<(String, String)>;   // This will record the repository index. First String is its name, and the second is its url.
     match readcfg() {
         Err(e) => {
             println!("{}: {}", error, e);
@@ -60,15 +67,14 @@ fn install(pkgindex: Vec<String>) {
             exit(2)
         },
         Ok(repoconf) => {
-            repoindex = repoconf.into_iter().map(|(k, v)| (k,
-v)).collect();
+            repoindex = repoconf.into_iter().map(|(k, v)| (k, v)).collect();
         }
     }
 
     // Second, check if index is exist
     let _repopath: String = String::new();  //  We'll use it later
     let mut errtime = 0;    // This will record the error times
-    for (reponame, _) in repoindex {
+    for (reponame, _) in &repoindex {
         let repopath = format!("/etc/mcospkg/database/remote/{}.json", reponame);
         // If index not exist, just quit
         if! Path::new(&repopath).exists() {
@@ -89,12 +95,29 @@ v)).collect();
     }
 
     // Next, check if pkgindex is empty
-    if pkgindex.len() <= 0 {
+    if pkglist.len() <= 0 {
         println!("{}: No package(s) specified.", error);
         exit(2);
     }
 
-    // And, read the configuration
+    // And, read the PKGINDEX
+    let mut pkgindex: HashMap<String, String> = HashMap::new();
+    for (reponame, _) in &repoindex {
+        let repopath = format!("/etc/mcospkg/database/remote/{}.json", reponame);
+        let repojson: serde_json::Value = match serde_json::from_str(&std::fs::read_to_string(repopath).unwrap()) {
+            Ok(v) => v,
+            Err(e) => {
+                println!("{}: {}", error, e);
+                exit(1);
+            }
+        };
+        for pkg in repojson.as_array().unwrap() {
+            pkgindex.insert(pkg["name"].as_str().unwrap().to_string(), pkg["url"].as_str().unwrap().to_string());
+        }
+    }
+
+    println!("{:?}", pkgindex)
+
 }
 
 fn remove(pkgindex: Vec<String>) {}
