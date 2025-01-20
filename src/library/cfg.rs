@@ -10,10 +10,18 @@ pub fn readcfg() -> Result<HashMap<String, String>, Error> {
             "Repository config file \"/etc/mcospkg/repo.conf\" not found",
         )
     })?;
+
     // Second, make it cleaner
     repoconf_raw = repoconf_raw.replace(" ", "").replace("\t", "");
 
-    // Third, we convert it to the HashMap
+    // Third, we remove the comments (with "#")
+    repoconf_raw = repoconf_raw
+        .lines()
+        .filter(|line| !line.starts_with('#'))
+        .collect::<Vec<&str>>()
+        .join("\n");
+
+    // Fourth, we convert it to the HashMap
     let mut repoconf: HashMap<String, String> = HashMap::new();
     for line in repoconf_raw.lines() {
         if let Some((key, value)) = line.split_once('=') {

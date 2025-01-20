@@ -7,7 +7,7 @@ pub fn download(url: String, save: String, msg: &'static str) -> Result<(), Erro
     let mut resp =
         get(url).map_err(|e| Error::new(ErrorKind::Other, format!("Cannot fetch file: {}", e)))?;
     let mut file = File::create(save)
-        .map_err(|e| Error::new(ErrorKind::Other, format!("Cannot create file: {}", e)))?;
+        .map_err(|e| Error::new(ErrorKind::Other, format!("Cannot create file: {}. Perhaps you didn't run it with \"sudo\"?", e)))?;
 
     let pb = ProgressBar::new(resp.content_length().unwrap_or(0));
     pb.set_style(
