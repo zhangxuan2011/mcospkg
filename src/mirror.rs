@@ -9,8 +9,9 @@ use crate::library::cfg::readcfg;
 use crate::library::download::download;
 use clap::Parser;
 use colored::Colorize;
-use std::process::exit;
+use std::process::{exit, Command};
 
+// And then we define the arguments
 #[derive(Parser, Debug)]
 #[command(name = "mcospkg-mirror")]
 #[command(about = "The mirror list manager of mcospkg")]
@@ -41,8 +42,7 @@ fn update() {
         Err(e) => {
             println!("{}: {}", error, e);
             println!(
-                "{}: Consider using this format to write to th
-at file:\n\t{}",
+                "{}: Consider using this format to write to that file:\n\t{}",
                 "note".bold().green(),
                 "[reponame] = [repourl]".cyan()
             );
@@ -61,7 +61,24 @@ at file:\n\t{}",
         repo_msgs.push(msg);
     }
 
-    // Second, download the file
+    // Second, create the dir if not exist
+    // Dir we store database: /etc/mcospkg/database/remote
+    if !std::path::Path::new("/etc/mcospkg/database/remote").exists() {
+        println!("Creating directory /etc/mcospkg/database/remote...");
+        match Command::new("sudo mkdir")
+            .arg("-p")
+            .arg("/etc/mcospkg/database/remote")
+            .status()
+        {
+            Ok(_) => {}
+            Err(e) => {
+                println!("{}: {}", error, e);
+                exit(2);
+            }
+        }
+    }
+
+    // Third, download the file
     println!("Updating index file...");
     for ((reponame, repourl), msg) in repoindex.into_iter().zip(repo_msgs.into_iter()) {
         if let Err(errmsg) = download(

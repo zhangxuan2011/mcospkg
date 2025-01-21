@@ -1,3 +1,4 @@
 /target
 /src/pylib/__pycache__
 Cargo.lock
+.vscode/*
