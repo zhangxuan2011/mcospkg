@@ -211,7 +211,7 @@ int installPackageDirectly(char* work_path, char* package_name){
     tColorBlue();
     printf("II: ");
     textAttr_reset();
-	printf("Installing package\t(Mode: Directory)\n");
+    printf("Installing package\t(Mode: Directory)\n");
     mkdir("/etc/mcospkg/database/remove_info", 777);
     // 1. Create Directory Index
     tColorBlue();
