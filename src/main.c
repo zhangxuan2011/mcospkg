@@ -71,6 +71,9 @@ void registerRemoveInfo(char* work_path, char* package_name) { // Register Remov
 
 void cleanOperation(char* work_path, char* package_name) { // NOTE:Run it in last, and don't do anything
     // 1. Run script
+    tColorBlue(); // color:blue
+    printf("II: ");
+    textAttr_reset(); // reset text attributes
     printf("Running install script...\t");
     fflush(stdout); // flush buffer to output text to screen
     
@@ -85,13 +88,20 @@ void cleanOperation(char* work_path, char* package_name) { // NOTE:Run it in las
     snprintf(script_command, script_command_length, "sudo %s", last_script_file); // Memory safe version
 
     system(script_command); // run install script
+    tColorGreen(); // color:green
     printf("Done\n");
+    textAttr_reset(); // reset text attributes
     // 2. Clean Directory
+    tColorBlue(); // color:blue
+    printf("II: ");
+    textAttr_reset(); // reset text attributes
     printf("Removing trash directory...\t");
     fflush(stdout);
     registerRemoveInfo(work_path, package_name); // register remove info(for remove)
     rm_file(work_path); // remove work directory
+    tColorGreen(); // color:green
     printf("Done!\n");
+    textAttr_reset(); // reset text attributes
     
     free(last_script_file);
     free(script_command);
@@ -112,13 +122,18 @@ void installPackageFromSource(char* work_path, char* package_name){ // NOTE:BUIL
         exit(-1); // Just exit!
     }
     // 3. Start build
+    tColorBlue(); // color:blue
+    printf("II: ");
+    textAttr_reset(); // reset text attributes
     printf("Start building.\n");
     chmod(build_script_file, 777); // Mode 777
     int build_command_length = strlen("sudo ") + build_script_file_length;
     char *build_command = (char*) malloc(build_command_length); // Alloc memory space
     snprintf(build_command, build_command_length, "sudo %s", build_script_file);
     system(build_command); // run build script
+    tColorGreen(); // color:green
     printf("Build\t--Over\n");
+    textAttr_reset(); // reset text attributes
     // 4. Clean operation
     cleanOperation(work_path, package_name);
     free(build_script_file);
@@ -193,17 +208,28 @@ void getDirectoryIndex(char* work_path, char* path, char* name, char* index_path
 }
 
 int installPackageDirectly(char* work_path, char* package_name){
-	printf("Uninstalling package\tMode: Directory\n");
+    tColorBlue();
+    printf("II: ");
+    textAttr_reset();
+	printf("Installing package\t(Mode: Directory)\n");
     mkdir("/etc/mcospkg/database/remove_info", 777);
     // 1. Create Directory Index
+    tColorBlue();
+    printf("II: ");
+    textAttr_reset();
     printf("Making installion index...\t");
     fflush(stdout);
     int index_path_length = strlen("/etc/mcospkg/database/remove_info/-file-index") + strlen(package_name) + 1;
     char* index_path = (char*) malloc(index_path_length);
     snprintf(index_path, index_path_length, "/etc/mcospkg/database/remove_info/%s-file-index", package_name);
     getDirectoryIndex(work_path, work_path, "", index_path);
+    tColorGreen();
     printf("Done.\n");
+    tColorBlue();
     // 2. Copy files
+    tColorBlue();
+    printf("II: ");
+    textAttr_reset();
     printf("Coping files...\t");
     fflush(stdout);
     FILE *fp = fopen(index_path, "r");
@@ -232,7 +258,9 @@ int installPackageDirectly(char* work_path, char* package_name){
     }
 	free(line);
     fclose(fp);
+    tColorGreen();
     printf("Done.\n");
+    textAttr_reset();
     // 3. Run HOOKS file and clean directory
     cleanOperation(work_path, package_name);
     // 4. Clean pointers
@@ -241,7 +269,10 @@ int installPackageDirectly(char* work_path, char* package_name){
 }
 
 void run_unhooks(char* package_name){
-	printf("Run uninstall script...\t");
+    tColorBlue();
+    printf("II: ");
+    textAttr_reset();
+	printf("Running uninstall script...\t");
 	fflush(stdout);
 	
     int unhook_file_length = strlen("/etc/mcospkg/database/remove_info/-UNHOOKS") + strlen(package_name) + 1;
@@ -250,7 +281,7 @@ void run_unhooks(char* package_name){
 	
 	if(!exists(unhook_file)){
         tColorRed();
-        printf("\nE: ");
+        printf("Error\nE: ");
         textAttr_reset();
         printf("package not exists!\n");
         free(unhook_file);
@@ -261,9 +292,13 @@ void run_unhooks(char* package_name){
     char* unhook_command = malloc(5 + unhook_file_length);
     strcpy(unhook_command, "sudo ");
     strcat(unhook_command, unhook_file);
+    strcat(unhook_command, " > /dev/null 2>&1"); // redirect output to null(ignore output)
 
     system(unhook_command);
+    free(unhook_command);
+    tColorGreen();
 	printf("Done\n");
+    textAttr_reset();
 
     remove(unhook_file);
 }
@@ -273,8 +308,15 @@ void removePackage(char* package_name){
     int index_path_length = strlen("/etc/mcospkg/database/remove_info/-file-index") + strlen(package_name) + 1;
     char* index_path = (char*) malloc(index_path_length);
     snprintf(index_path, index_path_length, "/etc/mcospkg/database/remove_info/%s-file-index", package_name);
+    tColorBlue();
+    printf("I: ");
+    textAttr_reset();
+	printf("Package Name:%s\n", package_name); // NOTE: Output Package Name, can delete
     if (exists(index_path)) { // Directly
-    	printf("Uninstalling package\tMode: Directly\nRemoving Files...\t");
+        tColorBlue();
+        printf("II: ");
+        textAttr_reset();
+    	printf("Uninstalling package\t(Mode: Directly)\nRemoving Files...\t");
     	fflush(stdout);
     	
         FILE* fp = fopen(index_path, "r");
@@ -285,20 +327,28 @@ void removePackage(char* package_name){
         while((read = getline(&line, &len, fp)) != -1){
 			rm_file(line);
         }
+        tColorGreen();
         printf("Done.\n");
+        textAttr_reset();
         
         free(line);
         remove(index_path);
         run_unhooks(package_name);
     }else{ // BUILD-SCRIPTS
         // Run UNHOOKS and done.
-        printf("Uninstalling package\tMode: Build & Install\n");
+        tColorBlue();
+        printf("II: ");
+        textAttr_reset();
+        printf("Uninstalling package\t(Mode: Build & Install)\n");
         run_unhooks(package_name);
     }
     free(index_path);
 }
 
 int installPackage(char* package_path, char* package_name){
+    tColorBlue();
+    printf("I: ");
+    textAttr_reset();
 	printf("Package Name:%s\n", package_name); // NOTE: Output Package Name, can delete
     mkdir("/etc/mcospkg/database", 777);
     // 1. Check package exists
@@ -313,7 +363,6 @@ int installPackage(char* package_path, char* package_name){
         printf("Installed!\nE: ");
         textAttr_reset();
         perror("Package exists!\n");
-        exit(-1);
     }
     
     printf("None.\n");

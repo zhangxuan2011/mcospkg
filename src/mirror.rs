@@ -65,7 +65,7 @@ fn update() {
     // Dir we store database: /etc/mcospkg/database/remote
     if !std::path::Path::new("/etc/mcospkg/database/remote").exists() {
         println!("Creating directory /etc/mcospkg/database/remote...");
-        match Command::new("sudo mkdir")
+        match Command::new("mkdir")
             .arg("-p")
             .arg("/etc/mcospkg/database/remote")
             .status()

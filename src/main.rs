@@ -62,7 +62,7 @@ fn main() {
     let args = Args::parse();
     match args.option.as_str() {
         "install" => install(args.packages, args.bypass_ask),
-        "remove" => remove(args.packages),
+        "remove" => remove(args.packages, args.bypass_ask),
         _ => println!("{}: unknown option: {}", error, args.option),
     };
 }
@@ -329,7 +329,9 @@ fn install(pkglist: Vec<String>, bypass_ask: bool) {
 // =====S====P====L====I====T=====
 // This is the remove function
 
-fn remove(_pkglist: Vec<String>) {
-    let package_name = CString::new("python").unwrap();
-    unsafe { removePackage(package_name.as_ptr()) }
+fn remove(pkglist: Vec<String>, _bypass_ask: bool) {
+    for pkg in pkglist {
+        let package_name = CString::new(pkg.as_str()).unwrap();
+        unsafe { removePackage(package_name.as_ptr()) }
+    }
 }
