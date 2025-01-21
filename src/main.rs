@@ -73,6 +73,7 @@ fn install(pkglist: Vec<String>) {
     let tip = "tip".green().bold();
     let info = "info".blue().bold();
     let done = "Done".green().bold();
+    let note = "note".yellow().bold();
     let args = Args::parse();
 
     // Stage 1: Explain the package
@@ -83,7 +84,7 @@ fn install(pkglist: Vec<String>) {
             println!("{}: {}", error, e);
             println!(
                 "{}: Consider using this format to write to that file:\n\t{}",
-                "note".bold().green(),
+                note,
                 "[reponame] = [repourl]".cyan()
             );
             exit(2)
@@ -223,7 +224,7 @@ fn install(pkglist: Vec<String>) {
     // So we need to check if the directory is exist
     // If it is not exist, we need to create it
     println!("{}: Downloading packages... ", info);
-    let cache_path = "/var/cache/mcospkg/";
+    let cache_path = "/var/cache/mcospkg";
     if !Path::new(cache_path).exists() {
         std::fs::create_dir(cache_path).unwrap();
     } else if !Path::new(cache_path).is_dir() {
@@ -242,49 +243,53 @@ fn install(pkglist: Vec<String>) {
     // Note: in different screens, this example shows different effects.
     // So, we need to download the package file and store it in the cache path
     // How to download? use the library we've imported - download.
-    // Now we needs to get the repo url
-    let repo_url: String = String::new();   // Declare it
-    let pkg_name: String = String::new();   // Declare it
-    let pkg_file: String = String::new();   // Declare it
-
+    // Define something
     let mut file_index: Vec<String> = Vec::new();   // Record the index, we'll use it in the next stage
-    for _ in &fetch_index {
-        for url in &url_total {
-            // Get the repo url
-            #[allow(unused_variables)]
-            let repo_url = url;
-        }
+    let mut pkg_msgs: Vec<&'static str> = Vec::new();   // This will record the message of downloading
+
+    for pkgname in &fetch_index {
+        let pkg_msg = format!("{}", pkgname);
+        let pkg_msg = Box::leak(pkg_msg.into_boxed_str());
+        pkg_msgs.push(pkg_msg);
+    }
+
+    for (pkg, msg) in fetch_index.into_iter().zip(pkg_msgs.into_iter()).clone() {
+        // Get the repo url
+        let repo_url = url_total.iter().next().unwrap().clone();
 
         // And, get the pkg name
-        for pkg in &fetch_index {
-            // Get the pkg name
-            #[allow(unused_variables)]
-            let pkg_name = pkg;
-        }
+        let pkg_name = pkg.clone();
 
         // And, get the pkg file
-        for pkg in &fetch_index {
-            // Get the pkg file
-            #[allow(unused_variables)]
-            let pkg_file = pkgindex.get(pkg).unwrap();
+        let pkg_file = pkgindex.get(&pkg).unwrap().clone();
+
+        // Now, we need to generate its path and url
+        let pkg_url = format!("{}/{}/{}", repo_url, pkg_name, pkg_file);
+        let pkg_path = format!("{}/{}", cache_path, pkg_file);
+
+        // Download the package
+        let mut errtime: u32 = 0;
+        if let Err(e) = download(pkg_url, pkg_path.clone(), &msg) {
+            println!("{}: {}", error, e);
+            errtime += 1;
         }
 
-        // Now, we need to download the package
-        
-        let pkg_url = format!("{}/{}/{}", repo_url, pkg_name, pkg_file);
-        let pkg_path = format!("{}/{}/{}", cache_path, pkg_name, pkg_file);
-        // Download the package
-        if let Err(e) = download(pkg_url, pkg_path.clone(), "Downloading package...") {
-            println!("{}: {}", error, e);
+        if errtime > 0 {
+            println!("{}: Cannot download some packages, installation abort.", error);
+            println!("{}: Please check your network connection or contact the author", note);
+            exit(1);
         }
-        // And, add it to the file index
+        // And, add it to the file index - use it later
         file_index.push(pkg_path.clone());
     }
+
+        
     // Stage 4: Install the package
     // My friend, Xiaokuai, uses C to write the install library.
     // I'll thank him at here :)
     // So, we need to use the C library to install the package
     // First, we need to convert the string to CString
+    println!("{}: Installing packages... ", info);
     let mut c_file_index: Vec<CString> = Vec::new();   // Record the index, we'll use it
     for filepath in &file_index {
         let c_pkg = CString::new(filepath.clone()).unwrap();
