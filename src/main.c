@@ -64,10 +64,8 @@ void registerRemoveInfo(char* work_path, char* package_name) { // Register Remov
     char* target = (char*) malloc(target_length);	// alloc memory space
     snprintf(target, target_length, "/etc/mcospkg/database/remove_info/%s-UNHOOKS", package_name); // target full path
 	copy_file(unhook_file, target);
-    free(unhook_file); // free
-    free(copy_command); // memory space
+    free(unhook_file); // free memory space
     unhook_file = NULL;
-    copy_command = NULL;
     return;
 }
 
