@@ -1,14 +1,14 @@
 // Well, this usually in use to print the information of the
 // mcospkg, and its usage.
 //
-// This supports to give you a lot of ibformation type, and 
+// This supports to give you a lot of ibformation type, and
 // you just need to add a info-type after the mcospkg-info.
 //
 // Ok, no more bullshit, let's start!
 
 // First, we need to import some modules:
-use clap::Parser;   // To parse argument(info-type)
-use colored::Colorize;  // To show colorful text(in var "error")
+use clap::Parser; // To parse argument(info-type)
+use colored::Colorize; // To show colorful text(in var "error")
 
 // And, set up the parser information:
 #[derive(Parser, Debug)]
@@ -19,7 +19,7 @@ use colored::Colorize;  // To show colorful text(in var "error")
 // Third, we need to define a struct, it shows the argument options.
 struct Args {
     #[arg(required = false, help = "Specify a Information type, Support: os-license, repo-site, all", default_value_t = String::from("all"))]
-    info_type: String,  // The info type, it's only a string
+    info_type: String, // The info type, it's only a string
 }
 
 // Fourth, let's do it!
