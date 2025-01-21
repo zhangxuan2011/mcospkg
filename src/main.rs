@@ -15,7 +15,6 @@ use serde::{Deserialize, Serialize};
 use serde_json;
 use std::collections::HashMap;
 use std::ffi::CString;
-use std::io::Write;
 use std::path::Path;
 use std::process::exit;
 
@@ -205,11 +204,11 @@ fn install(pkglist: Vec<String>, bypass_ask: bool) {
     for pkg in &fetch_index {
         print!("{} ", pkg);
     }
-    std::io::stdout().flush().unwrap();
+    println!("");
 
     if !bypass_ask {
         let input: String = Input::new()
-            .with_prompt("\n\nDo you want to continue? (y/n)")
+            .with_prompt("\nDo you want to continue? (y/n)")
             .interact_text()
             .unwrap();
         if input != "y" && input != "Y" {
@@ -217,7 +216,7 @@ fn install(pkglist: Vec<String>, bypass_ask: bool) {
             exit(1);
         }
     } else {
-        println!("\n\nDo you want to continue? (y/n): y");
+        println!("\nDo you want to continue? (y/n): y");
     }
 
     // Now user allowed to install packages by using mcospkg. Congratulations :) !
@@ -331,6 +330,6 @@ fn install(pkglist: Vec<String>, bypass_ask: bool) {
 // This is the remove function
 
 fn remove(_pkglist: Vec<String>) {
-    let package_name = CString::new("mcospkg").unwrap();
+    let package_name = CString::new("python").unwrap();
     unsafe { removePackage(package_name.as_ptr()) }
 }
