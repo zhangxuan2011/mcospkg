@@ -24,12 +24,12 @@ fn main() {
     }
     // Configure and build the pkgmgr library
     build.include(include_dir);
-    build.shared_flag(true);
     build.opt_level(3);
     build.out_dir(&out_dir);
     build.compile("pkgmgr");
 
+
     // Tell Rust to link against the pkgmgr library
-    println!("cargo:rustc-link-lib=dylib=pkgmgr");
-    println!("cargo:rustc-link-search=native=lib");
+    println!("cargo:rustc-link-search=native=target/lib");
+    println!("cargo:rustc-link-lib=static=pkgmgr");
 }
