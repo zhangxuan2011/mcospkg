@@ -6,7 +6,15 @@ This project uses in MinecraftOS, a **linux** operating system for Minecraft pla
 ## Description
 This project imagine by a 12-year-old boy (THE SAME PERSON) at first, cause there's less package manager by Chinese, so as a Chinese young man and developer, I, and my team, will take this mission on.
 
+## Extension Documents
+For more documents, please look at the directory `Doc/`
+
+如果你是中国人🇨🇳, 那么我们贴心地准备了翻译(在`Doc/Chinese`下)
+
 ## Build & Install
+If you have installed mcospkg, just run this command:
+`sudo mcospkg update mcospkg`
+
 To build it, ensure you had installed these applications(packages):
 
  - Rust(stable, latest, with Cargo)
@@ -26,30 +34,19 @@ git clone https://github.com/zhangxuan2011/mcospkg.git
 cd mcospkg
 ```
 
-2, Configure build.sh
+2, Build
+Run this command to build this project:
 
-Find the variable define prefix, python(pip) executable name, and modify the variable's value by your want
+`cargo build --release -j8`
 
-3, Build
+In it, you can specify the building jobs (In this example, Jobs = 8)
 
-Now, you just need to run these commands:
-```bash
-chmod +x build.sh
-./build.sh
-```
-This will help you to build the mcospkg into the directory in `target/intergrated`.
+**NOTE**!!!! You must specify the argument `--release` otherwise you **CAN'T** do more steps in this building process. 
 
-4, Install
+3, Install
 
-Run:
-```bash
-sudo ./build.sh install
-```
-This command will help you to install mcospkg into the prefix you've defined
+Run the `install.sh` we've given:
 
-5, Uninstall
-If you don't want mcospkg in your computer, you just need to run:
-```bash
-sudo ./build.sh remove
-```
-**Attention!** You must build from this repository before you run it, otherwise we don't care about it if you get something worse!!!!!
+`sudo ./install.sh`
+
+This will install the mcospkg to `/` (Defined in `PREFIX`)

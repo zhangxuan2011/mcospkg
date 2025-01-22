@@ -1,7 +1,7 @@
 [package]
 name = "mcospkg"
 version = "0.1.1"
-authors = ["zhangxuan2011 <zx20110412@outlook.com>"]
+authors = ["zhangxuan2011 <zx20110412@outlook.com>", "RainyHowCool <rainyhowcool@outlook.com>"]
 edition = "2021"
 
 [package.metadata]
@@ -10,11 +10,16 @@ repository = "https://github.com/zhangxuan2011/mcospkg"
 
 [dependencies]
 clap = { version = "4.5.23", features = ["derive"] }
-colored = "2.2.0"
+colored = "3.0.0"
+dialoguer = "0.11.0"
 indicatif = "0.17.9"
+libc = "0.2.169"
 reqwest = { version = "0.12.12", features = ["blocking"] }
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+serde_json = "1.0.135"
+
+[build-dependencies]
+cc = "1.2.10"
 
 # This is the binary file define area
 # The file format: mcospkg-xxx
