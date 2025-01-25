@@ -121,16 +121,16 @@ fn add(reponame: String, repourl: String) {
             exit(2);
         },
         Ok(mut repofile) => {
-            match repofile.write_all(format!("[{}]\nurl = {}\n", reponame, repourl).as_bytes()) {    // Write the file
+            match repofile.write_all(format!("{} = {}\n", reponame, repourl).as_bytes()) {    // Write the file
                 Err(e) => {     // If not, print the error and exit
                     eprintln!("{}: {}", error, e);
                     exit(2);
                 },
                 Ok(_) => {  // If yes, print the message
                     println!(
-                        "{}: Added {} to the repository.",
+                        "{}: Added repository name \"{}\" to the configuration file.",
+                        "ok".green().bold(),
                         reponame,
-                        "ok".green().bold()
                     );
                 }
             }
