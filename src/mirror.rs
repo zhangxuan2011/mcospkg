@@ -1,35 +1,52 @@
-// First, import local modules
-pub mod library {
-    pub mod cfg;
-    pub mod download;
-}
-
-// And import some modules we need
-use crate::library::cfg::readcfg;
-use crate::library::download::download;
-use clap::Parser;
+// First, import some modules we need
+use clap::{Parser, Subcommand};
 use colored::Colorize;
+use mcospkg::download;
+use mcospkg::readcfg;
 use std::process::{exit, Command};
+use std::io::Write;
 
 // And then we define the arguments
 #[derive(Parser, Debug)]
 #[command(name = "mcospkg-mirror")]
 #[command(about = "The mirror list manager of mcospkg")]
 #[command(version = "0.1.1-debug")]
-
 struct Args {
-    #[arg(required = true, help = "update/add/delete are the avainable option")]
-    option: String,
+    #[command(subcommand)]
+    option: Options,
+}
+
+#[derive(Subcommand, Debug)]
+enum Options {
+    #[command(about = "Update the mirror list")]
+    Update,
+
+    #[command(about = "Add a mirror")]
+    Add {
+        #[arg(help = "The name of the repository")]
+        reponame: String,
+
+        #[arg(help = "The url of the repository")]
+        repourl: String,
+    },
+
+    #[command(about = "Delete a mirror")]
+    Delete {
+        #[arg(help = "The name of the repository")]
+        reponame: String,
+    },
 }
 
 fn main() {
-    let error = "error".red().bold();
     let args = Args::parse();
-    match args.option.as_str() {
-        "update" => update(),
-        "add" => add(),
-        "delete" => delete(),
-        _ => println!("{}: unknown option: {}", error, args.option),
+    match args.option {
+        Options::Update => update(),
+        Options::Add { reponame, repourl } => {
+            add(reponame, repourl);
+        },
+        Options::Delete { reponame } => {
+            delete(reponame);
+        },
     }
 }
 
@@ -40,7 +57,7 @@ fn update() {
     let repoindex: Vec<(String, String)>;
     match readcfg() {
         Err(e) => {
-            println!("{}: {}", error, e);
+            eprintln!("{}: {}", error, e);
             println!(
                 "{}: Consider using this format to write to that file:\n\t{}",
                 "note".bold().green(),
@@ -72,7 +89,7 @@ fn update() {
         {
             Ok(_) => {}
             Err(e) => {
-                println!("{}: {}", error, e);
+                eprintln!("{}: {}", error, e);
                 exit(2);
             }
         }
@@ -86,11 +103,39 @@ fn update() {
             format!("/etc/mcospkg/database/remote/{}.json", reponame),
             msg,
         ) {
-            println!("{}: {}", error, errmsg);
+            eprintln!("{}: {}", error, errmsg);
         }
     }
 }
 
-fn add() {}
+fn add(reponame: String, repourl: String) {
+    let error = "error".red().bold();
+    // First, open the repo file
+    let repofile = std::fs::OpenOptions::new()
+        .write(true)
+        .append(true)
+        .open("/etc/mcospkg/repo.conf");
+    match repofile {    // See if the file is opened
+        Err(e) => { // If not, print the error and exit
+            eprintln!("{}: {}", error, e);
+            exit(2);
+        },
+        Ok(mut repofile) => {
+            match repofile.write_all(format!("[{}]\nurl = {}\n", reponame, repourl).as_bytes()) {    // Write the file
+                Err(e) => {     // If not, print the error and exit
+                    eprintln!("{}: {}", error, e);
+                    exit(2);
+                },
+                Ok(_) => {  // If yes, print the message
+                    println!(
+                        "{}: Added {} to the repository.",
+                        reponame,
+                        "ok".green().bold()
+                    );
+                }
+            }
+        }
+    }
+}
 
-fn delete() {}
+fn delete(_reponame: String) {}

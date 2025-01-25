@@ -1,20 +1,15 @@
-// First, we should declare the lib
-mod library {
-    pub mod cfg;
-    pub mod download;
-}
-
 // Now, we need to import some modules:
-use crate::library::cfg::readcfg;
-use crate::library::download::download;
 use clap::Parser;
 use colored::Colorize;
 use dialoguer::Input;
 use libc::{c_char, c_int};
+use mcospkg::download;
+use mcospkg::readcfg;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::collections::HashMap;
 use std::ffi::CString;
+use std::fmt;
 use std::path::Path;
 use std::process::exit;
 
@@ -24,7 +19,9 @@ extern "C" {
     fn removePackage(package_name: *const c_char); // TODO: use it in Remove function
 }
 
-// Configure parser
+// ========structs define area=========
+
+// ====Arguments define area====
 #[derive(Parser, Debug)]
 #[command(name = "mcospkg")]
 #[command(about = "A linux package-manager made for MinecraftOS (Main program)")]
@@ -32,7 +29,7 @@ extern "C" {
 
 // Define argument lists
 struct Args {
-    #[arg(required = true, help = "Supports: install/remove/update")]
+    #[arg(required = true, help = "Supports: install/remove/update/reinstall")]
     option: String,
 
     #[arg(required = false)]
@@ -47,32 +44,54 @@ struct Args {
     bypass_ask: bool,
 }
 
-// Define the json format
-#[derive(Debug, Serialize, Deserialize)]
-struct PkgIndex {
-    // arch: Option<String>, // TODO: Support arch
-    url: Option<String>,
-    pkgindex: Option<HashMap<String, String>>,
-    baseon: Option<HashMap<String, Vec<String>>>,
-    // group: Option<HashMap<String, String>>, // TODO: Support group
+// =====json define area=====
+// Define the pkg info
+#[derive(Debug, Clone, Deserialize, Serialize)]
+struct PkgInfo {
+    filename: String,
+    version: String,
 }
 
+// This implete the trait "Display", we'll use it later.
+impl fmt::Display for PkgInfo {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} (version: {})", self.filename, self.version)
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct PkgIndex {
+    // arch: String, // TODO: Support arch
+    url: String,
+    pkgindex: HashMap<String, PkgInfo>,
+    baseon: HashMap<String, Vec<String>>,
+    // group: HashMap<String, String>, // TODO: Support group
+}
+
+// ========functions define area==========
 fn main() {
     let error = "error".red().bold();
     let args = Args::parse();
     match args.option.as_str() {
-        "install" => install(args.packages, args.bypass_ask),
+        "install" => install(args.packages, args.bypass_ask, false),
         "remove" => remove(args.packages, args.bypass_ask),
+        "reinstall" => install(args.packages, args.bypass_ask, true),
         _ => println!("{}: unknown option: {}", error, args.option),
     };
 }
 
-fn install(pkglist: Vec<String>, bypass_ask: bool) {
+fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
+    // Presets
     let error = "error".red().bold();
     let tip = "tip".green().bold();
     let info = "info".blue().bold();
     let done = "Done".green().bold();
     let note = "note".yellow().bold();
+
+    // Tell user is this mode is "reinstall"
+    if reinstall {
+        println!("{}: Reinstall mode enabled.", note);
+    }
 
     // Stage 1: Explain the package
     // First, load configuration and get its HashMap
@@ -129,13 +148,15 @@ fn install(pkglist: Vec<String>, bypass_ask: bool) {
         let index_raw = std::fs::read_to_string(&indexpath).unwrap();
         let index: PkgIndex = serde_json::from_str(&index_raw).unwrap();
 
-        // Push it to the vector
-        url_total.push(index.url.unwrap());
-        pkgindex_total.push(index.pkgindex.unwrap());
-        baseon_total.push(index.baseon.unwrap());
+        // Add them to the total
+        url_total.push(index.url);
+        pkgindex_total.push(index.pkgindex);
+        baseon_total.push(index.baseon);
     }
+    println!("{}", done);
+
     // Stage 2: Check if package is exist
-    let mut pkgindex: HashMap<String, String> = HashMap::new(); // The first string is the package name, and the second is the file name
+    let mut pkgindex: HashMap<String, PkgInfo> = HashMap::new();
     for (i, _) in pkgindex_total.iter().enumerate() {
         pkgindex.extend(pkgindex_total[i].clone());
     }
@@ -151,7 +172,6 @@ fn install(pkglist: Vec<String>, bypass_ask: bool) {
             exit(2)
         }
     }
-    println!("{}", done);
 
     // Stage 2: Check the packages' dependencies
     // To check it, we need to use the baseon_total
@@ -198,7 +218,59 @@ fn install(pkglist: Vec<String>, bypass_ask: bool) {
     }
 
     println!("{}", done);
-    // Stage 3: Download the package
+
+    // Stage 3: Check if the package is installed in the system
+    // NOTE: If the "reinstall" = true, pass this stage
+    // First, we need to check if the package is exist in the system
+    // If it is exist, we need to ask user if they want to reinstall it
+    // The method of checking is check if "/etc/mcospkg/database/remove_info/<package>-UNHOOKS" is exist
+    // If it is exist, we need to ask user if they want to reinstall it
+    // If it is not exist, we need to ask user if they want to install it
+    if !reinstall {
+        print!("{}: Checking if the package is installed... ", info);
+        for pkg in &fetch_index {
+            if Path::new(&format!(
+                "/etc/mcospkg/database/remove_info/{}-UNHOOKS",
+                pkg
+            ))
+            .exists()
+            {
+                println!("{}", error);
+                println!(
+                    "{}: Package \"{}\" is installed, cannot reinstall it\nTo reinstall it, use \"{}\"",
+                    error,
+                    pkg,
+                    "mcospkg reinstall <package>".cyan()
+                );
+                exit(1)
+            }
+        }
+    }
+
+    // If the "reinstall" = true, check is it NOT installed
+    if reinstall {
+        print!("{}: Checking if the package is installed... ", info);
+        for pkg in &fetch_index {
+            if !Path::new(&format!(
+                "/etc/mcospkg/database/remove_info/{}-UNHOOKS",
+                pkg
+            ))
+            .exists()
+            {
+                println!("{}", error);
+                println!(
+                    "{}: Package \"{}\" is not installed, cannot reinstall it without \"reinstall\" mode.\nTo install it, use \"{}\"",
+                    error,
+                    pkg,
+                    "mcospkg install <package>".cyan()
+                );
+                exit(1)
+            }
+        }
+    }
+    println!("{}", done);
+
+    // Stage 4: Download the package
     // First, we need to ask user that if they want to install it
     println!("{}: The following packages is being installed:", info);
     for pkg in &fetch_index {
@@ -250,6 +322,7 @@ fn install(pkglist: Vec<String>, bypass_ask: bool) {
     // Define something
     let mut file_index: Vec<String> = Vec::new(); // Record the index, we'll use it in the next stage
     let mut pkg_msgs: Vec<&'static str> = Vec::new(); // This will record the message of downloading
+    let mut pkg_version_index = Vec::new(); // This will record the package's version
 
     for pkgname in &fetch_index {
         let pkg_msg = format!("{}", pkgname);
@@ -265,7 +338,10 @@ fn install(pkglist: Vec<String>, bypass_ask: bool) {
         let pkg_name = pkg.clone();
 
         // And, get the pkg file
-        let pkg_file = pkgindex.get(&pkg).unwrap().clone();
+        let pkg_file = pkgindex.get(&pkg).unwrap().filename.clone();
+
+        // Then, get package's version
+        let pkg_version = pkgindex.get(&pkg).unwrap().version.clone();
 
         // Now, we need to generate its path and url
         let pkg_url = format!("{}/{}/{}", repo_url, pkg_name, pkg_file);
@@ -291,9 +367,10 @@ fn install(pkglist: Vec<String>, bypass_ask: bool) {
         }
         // And, add it to the file index - use it later
         file_index.push(pkg_path.clone());
+        pkg_version_index.push(pkg_version.clone());
     }
 
-    // Stage 4: Install the package
+    // Stage 5: Install the package
     // My friend, Xiaokuai, uses C to write the install library.
     // I'll thank him at here :)
     // So, we need to use the C library to install the package

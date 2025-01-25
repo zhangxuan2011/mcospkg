@@ -351,30 +351,15 @@ int installPackage(char* package_path, char* package_name){
     textAttr_reset();
 	printf("Package Name:%s\n", package_name); // NOTE: Output Package Name, can delete
     mkdir("/etc/mcospkg/database", 777);
-    // 1. Check package exists
-    printf("Checking if the package is installed...\t");
-    fflush(stdout); 
-    int unhook_length = 44 + strlen(package_name);
-    char* unhook = (char*) malloc(unhook_length);
-    snprintf(unhook, unhook_length, "/etc/mcospkg/database/remove_info/%s-UNHOOKS", package_name);
-    
-    if(exists(unhook)){
-        tColorRed();
-        printf("Installed!\nE: ");
-        textAttr_reset();
-        perror("Package exists!\n");
-    }
-    
-    printf("None.\n");
-    // 2. Create temp directory
+    // 1. Create temp directory
     printf("Extracting... ");
     fflush(stdout); 
     char directory_template[] = "/tmp/pkgTmpDirXXXXXX";
     char *temp_directory_name = mkdtemp(directory_template);
-    // 3. Unpack package
+    // 2. Unpack package
     extractArchiveLinux(package_path, temp_directory_name);
     printf("Done.\n\n");
-    // 4. Build or copy
+    // 3. Build or copy
     int build_script_file_length = strlen(temp_directory_name) + strlen("/BUILD-SCRIPT") + 1;
     char *build_script_file = (char*) malloc(build_script_file_length); // Alloc memory space
     snprintf(build_script_file, build_script_file_length, "%s/BUILD-SCRIPT", temp_directory_name); // Memory safe version
