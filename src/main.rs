@@ -146,7 +146,12 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
         // Read and parse the index
         let indexpath = format!("/etc/mcospkg/database/remote/{}.json", reponame);
         let index_raw = std::fs::read_to_string(&indexpath).unwrap();
-        let index: PkgIndex = serde_json::from_str(&index_raw).unwrap();
+        let index: PkgIndex = serde_json::from_str(&index_raw).unwrap_or_else(|_| {
+            println!("{}", error);
+            eprintln!("{}: Invaild PKGINDEX format (In repository {})", error, &reponame);
+            eprintln!("{}: Consider update the mirrorlist or contact the repository author.", note);
+            exit(1);
+        });
 
         // Add them to the total
         url_total.push(index.url);
@@ -165,7 +170,7 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
     for pkg in &pkglist {
         if !pkgindex.contains_key(pkg) {
             println!("{}", error);
-            println!(
+            eprintln!(
                 "{}: Package \"{}\" not found in any repositories.",
                 error, pkg
             );
@@ -400,6 +405,8 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
             println!("{}: {}", error, res);
         }
     }
+
+    // And, that's complete!
 }
 
 // This is the install function
