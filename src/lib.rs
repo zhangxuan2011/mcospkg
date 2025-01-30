@@ -2,13 +2,45 @@
 // So I'll move them to here.
 
 // Import the modules
+use colored::{ColoredString, Colorize};
+use indicatif::{ProgressBar, ProgressStyle};
+use reqwest::blocking::get;
 use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::{Error, ErrorKind, Read, Write};
-use indicatif::{ProgressBar, ProgressStyle};
-use reqwest::blocking::get;
 
-// And this function will read the configuration file and return a HashMap
+// In most codes, we usually meet the colorful message. So
+// we moved them in a struct.
+pub struct Color {
+    pub error: ColoredString,
+    pub tip: ColoredString,
+    pub info: ColoredString,
+    pub done: ColoredString,
+    pub note: ColoredString,
+}
+
+// Implement this struct
+impl Color {
+    pub fn new() -> Self {
+        let error = "error".red().bold();
+        let tip = "tip".green().bold();
+        let info = "info".blue().bold();
+        let done = "Done".green().bold();
+        let note = "note".yellow().bold();
+        Self {
+            error,
+            tip,
+            info,
+            done,
+            note,
+        }
+    }
+
+    // This func will get the value of someone and return it.
+    todo!()
+}
+
+// This function will read the configuration file and return a HashMap
 // The HashMap's key is the repository name, and the value is the repository URL
 // If the configuration file is not found, it will return an error
 // If the configuration file is not in the correct format, it will return an error, too.
@@ -90,4 +122,3 @@ pub fn download(url: String, save: String, msg: &'static str) -> Result<(), Erro
     pb.finish();
     Ok(())
 }
-

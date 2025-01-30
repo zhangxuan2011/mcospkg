@@ -3,8 +3,7 @@ use clap::Parser;
 use colored::Colorize;
 use dialoguer::Input;
 use libc::{c_char, c_int};
-use mcospkg::download;
-use mcospkg::readcfg;
+use mcospkg::{download, readcfg, Color};
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::collections::HashMap;
@@ -70,7 +69,7 @@ struct PkgIndex {
 
 // ========functions define area==========
 fn main() {
-    let error = "error".red().bold();
+    let error = Color::new();
     let args = Args::parse();
     match args.option.as_str() {
         "install" => install(args.packages, args.bypass_ask, false),
@@ -82,11 +81,7 @@ fn main() {
 
 fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
     // Presets
-    let error = "error".red().bold();
-    let tip = "tip".green().bold();
-    let info = "info".blue().bold();
-    let done = "Done".green().bold();
-    let note = "note".yellow().bold();
+    let color = Color::new();
 
     // Tell user is this mode is "reinstall"
     if reinstall {
