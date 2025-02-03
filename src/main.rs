@@ -1,3 +1,36 @@
+/// This file contains the executable file `mcospkg`.
+///
+/// Usage:
+///
+/// ```bash
+/// mcospkg [OPTIONS] <OPTION> <PACKAGES...>
+/// ```
+///
+/// Explain:
+///
+/// [OPTIONS]: Including the `-y`, `-h` and `-V`;
+///
+/// <OPTION> : Be different with [OPTIONS], it's a string, only `install`, `remove` and `update`;
+///
+/// <PACKAGES> : The package you want to install/update/remove
+///
+/// This is the explaining of [OPTIONS]:
+///
+/// -y, --bypass: Install/remove/update packages WITHOUT asking;
+/// -h, --help  : Get help message;
+/// -V, --version: Print the version to the screen
+///
+/// Example:
+///
+/// ```bash
+/// mcospkg install python  # Install package called "python"
+/// mcospkg remove apt      # Remove the package called "apt"
+/// mcospkg update          # Update all packages to the latest version
+/// mcospkg update mcospkg  # Update the package "mcospkg" to the latest version
+/// ```
+///
+/// For more information, type: `mcospkg -h`
+
 // Now, we need to import some modules:
 use clap::Parser;
 use colored::Colorize;
@@ -44,7 +77,7 @@ struct Args {
 }
 
 // =====json define area=====
-// Define the pkg info
+// Define the pkg color.info
 #[derive(Debug, Clone, Deserialize, Serialize)]
 struct PkgInfo {
     filename: String,
@@ -69,13 +102,13 @@ struct PkgIndex {
 
 // ========functions define area==========
 fn main() {
-    let error = Color::new();
+    let color = Color::new();
     let args = Args::parse();
     match args.option.as_str() {
         "install" => install(args.packages, args.bypass_ask, false),
         "remove" => remove(args.packages, args.bypass_ask),
         "reinstall" => install(args.packages, args.bypass_ask, true),
-        _ => println!("{}: unknown option: {}", error, args.option),
+        _ => println!("{}: unknown option: {}", color.error, args.option),
     };
 }
 
@@ -85,7 +118,7 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
 
     // Tell user is this mode is "reinstall"
     if reinstall {
-        println!("{}: Reinstall mode enabled.", note);
+        println!("{}: Reinstall mode enabled.", color.note);
     }
 
     // Stage 1: Explain the package
@@ -93,10 +126,10 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
     let repoindex: Vec<(String, String)>; // This will record the repository index. First String is its name, and the second is its url.
     match readcfg() {
         Err(e) => {
-            println!("{}: {}", error, e);
+            println!("{}: {}", color.error, e);
             println!(
                 "{}: Consider using this format to write to that file:\n\t{}",
-                note,
+                color.note,
                 "[reponame] = [repourl]".cyan()
             );
             exit(2)
@@ -108,19 +141,19 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
 
     // Second, check if index is exist
     let _repopath: String = String::new(); //  We'll use it later
-    let mut errtime = 0; // This will record the error times
+    let mut errtime = 0; // This will record the color.error times
     for (reponame, _) in &repoindex {
         let repopath = format!("/etc/mcospkg/database/remote/{}.json", reponame);
         // If index not exist, just quit
         if !Path::new(&repopath).exists() {
-            println!("{}: Repository index \"{}\" not found", error, reponame);
+            println!("{}: Repository index \"{}\" not found", color.error, reponame);
             errtime += 1;
         }
     }
     if errtime > 0 {
         println!(
             "{}: use \"{}\" to download it.",
-            tip,
+            color.tip,
             "mcospkg-mirror update".cyan()
         );
         exit(1);
@@ -128,12 +161,12 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
 
     // Next, check if pkgindex is empty
     if pkglist.len() <= 0 {
-        println!("{}: No package(s) specified.", error);
+        println!("{}: No package(s) specified.", color.error);
         exit(2);
     }
 
     // And, read the PKGINDEX
-    print!("{}: Reading package index... ", info);
+    print!("{}: Reading package index... ", color.info);
     let mut url_total: Vec<String> = Vec::new(); // This will record the "url"
     let mut pkgindex_total = Vec::new(); // This will record the "pkgindex"
     let mut baseon_total = Vec::new(); // This will record the "baseon"
@@ -142,9 +175,9 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
         let indexpath = format!("/etc/mcospkg/database/remote/{}.json", reponame);
         let index_raw = std::fs::read_to_string(&indexpath).unwrap();
         let index: PkgIndex = serde_json::from_str(&index_raw).unwrap_or_else(|_| {
-            println!("{}", error);
-            eprintln!("{}: Invaild PKGINDEX format (In repository {})", error, &reponame);
-            eprintln!("{}: Consider update the mirrorlist or contact the repository author.", note);
+            println!("{}", color.error);
+            eprintln!("{}: Invaild PKGINDEX format (In repository {})", color.error, &reponame);
+            eprintln!("{}: Consider update the mirrorlist/mcospkg or contact the repository author.", color.note);
             exit(1);
         });
 
@@ -153,7 +186,7 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
         pkgindex_total.push(index.pkgindex);
         baseon_total.push(index.baseon);
     }
-    println!("{}", done);
+    println!("{}", color.done);
 
     // Stage 2: Check if package is exist
     let mut pkgindex: HashMap<String, PkgInfo> = HashMap::new();
@@ -164,10 +197,10 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
     // Main of this stage - Compare user input ("pkglist") and pkgindex
     for pkg in &pkglist {
         if !pkgindex.contains_key(pkg) {
-            println!("{}", error);
+            println!("{}", color.error);
             eprintln!(
                 "{}: Package \"{}\" not found in any repositories.",
-                error, pkg
+                color.error, pkg
             );
             exit(2)
         }
@@ -178,7 +211,7 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
     // Cause the baseon_total is a vector, we need to use a loop to check it
     // First, we need to check if the package is exist in the baseon_total
     // If it is exist, we need to check if the package is exist in the baseon_total
-    print!("{}: Checking package dependencies... ", info);
+    print!("{}: Checking package dependencies... ", color.info);
     let mut baseon: HashMap<String, Vec<String>> = HashMap::new(); // The first string is the package name, and the second is the dependencies
     for (i, _) in baseon_total.iter().enumerate() {
         baseon.extend(baseon_total[i].clone());
@@ -195,10 +228,10 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
     for pkg in &need_dependencies {
         for dep in &baseon[pkg] {
             if !pkgindex.contains_key(dep) {
-                println!("{}", error);
+                println!("{}", color.error);
                 println!(
                     "{}: Invaild package dependencies: \"{}\" (not found in package index)",
-                    error, dep
+                    color.error, dep
                 );
                 exit(1)
             }
@@ -217,28 +250,28 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
         }
     }
 
-    println!("{}", done);
+    println!("{}", color.done);
 
     // Stage 3: Check if the package is installed in the system
     // NOTE: If the "reinstall" = true, pass this stage
     // First, we need to check if the package is exist in the system
     // If it is exist, we need to ask user if they want to reinstall it
-    // The method of checking is check if "/etc/mcospkg/database/remove_info/<package>-UNHOOKS" is exist
+    // The method of checking is check if "/etc/mcospkg/database/remove_color.info/<package>-UNHOOKS" is exist
     // If it is exist, we need to ask user if they want to reinstall it
     // If it is not exist, we need to ask user if they want to install it
     if !reinstall {
-        print!("{}: Checking if the package is installed... ", info);
+        print!("{}: Checking if the package is installed... ", color.info);
         for pkg in &fetch_index {
             if Path::new(&format!(
-                "/etc/mcospkg/database/remove_info/{}-UNHOOKS",
+                "/etc/mcospkg/database/remove_color.info/{}-UNHOOKS",
                 pkg
             ))
             .exists()
             {
-                println!("{}", error);
+                println!("{}", color.error);
                 println!(
                     "{}: Package \"{}\" is installed, cannot reinstall it\nTo reinstall it, use \"{}\"",
-                    error,
+                    color.error,
                     pkg,
                     "mcospkg reinstall <package>".cyan()
                 );
@@ -249,18 +282,18 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
 
     // If the "reinstall" = true, check is it NOT installed
     if reinstall {
-        print!("{}: Checking if the package is installed... ", info);
+        print!("{}: Checking if the package is installed... ", color.info);
         for pkg in &fetch_index {
             if !Path::new(&format!(
-                "/etc/mcospkg/database/remove_info/{}-UNHOOKS",
+                "/etc/mcospkg/database/remove_color.info/{}-UNHOOKS",
                 pkg
             ))
             .exists()
             {
-                println!("{}", error);
+                println!("{}", color.error);
                 println!(
                     "{}: Package \"{}\" is not installed, cannot reinstall it without \"reinstall\" mode.\nTo install it, use \"{}\"",
-                    error,
+                    color.error,
                     pkg,
                     "mcospkg install <package>".cyan()
                 );
@@ -268,11 +301,11 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
             }
         }
     }
-    println!("{}", done);
+    println!("{}", color.done);
 
     // Stage 4: Download the package
     // First, we need to ask user that if they want to install it
-    println!("{}: The following packages is being installed:", info);
+    println!("{}: The following packages is being installed:", color.info);
     for pkg in &fetch_index {
         print!("{} ", pkg);
     }
@@ -284,7 +317,7 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
             .interact_text()
             .unwrap();
         if input != "y" && input != "Y" {
-            println!("{}: User rejected the installation request", error);
+            println!("{}: User rejected the installation request", color.error);
             exit(1);
         }
     } else {
@@ -296,14 +329,14 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
     // Then, we need to create a directory to store the packages
     // So we need to check if the directory is exist
     // If it is not exist, we need to create it
-    println!("{}: Downloading packages... ", info);
+    println!("{}: Downloading packages... ", color.info);
     let cache_path = "/var/cache/mcospkg";
     if !Path::new(cache_path).exists() {
         std::fs::create_dir(cache_path).unwrap();
     } else if !Path::new(cache_path).is_dir() {
         println!(
             "{}: The cache path is not a directory. Please make it to a dir",
-            error
+            color.error
         );
         exit(1);
     }
@@ -350,18 +383,18 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
         // Download the package
         let mut errtime: u32 = 0;
         if let Err(e) = download(pkg_url, pkg_path.clone(), &msg) {
-            println!("{}: {}", error, e);
+            println!("{}: {}", color.error, e);
             errtime += 1;
         }
 
         if errtime > 0 {
             println!(
                 "{}: Cannot download some packages, installation abort.",
-                error
+                color.error
             );
             println!(
                 "{}: Please check your network connection or contact the author",
-                note
+                color.note
             );
             exit(1);
         }
@@ -375,7 +408,7 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
     // I'll thank him at here :)
     // So, we need to use the C library to install the package
     // First, we need to convert the string to CString
-    println!("{}: Installing packages... ", info);
+    println!("{}: Installing packages... ", color.info);
     let mut c_file_index: Vec<CString> = Vec::new(); // Record the index, we'll use it
     for filepath in &file_index {
         let c_pkg = CString::new(filepath.clone()).unwrap();
@@ -397,7 +430,7 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
         let c_pkg_path = CString::new(pkg.to_str().unwrap()).unwrap();
         let res = unsafe { installPackage(c_pkg_path.as_ptr(), c_pkg_name.as_ptr()) };
         if res != 0 {
-            println!("{}: {}", error, res);
+            println!("{}: {}", color.error, res);
         }
     }
 

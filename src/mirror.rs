@@ -1,8 +1,7 @@
 // First, import some modules we need
 use clap::{Parser, Subcommand};
 use colored::Colorize;
-use mcospkg::download;
-use mcospkg::readcfg;
+use mcospkg::{download, readcfg, Color};
 use std::process::{exit, Command};
 use std::io::Write;
 
@@ -51,13 +50,13 @@ fn main() {
 }
 
 fn update() {
-    let error = "error".red().bold();
+    let color = Color::new();
 
     // First, we read the configuration file
     let repoindex: Vec<(String, String)>;
     match readcfg() {
         Err(e) => {
-            eprintln!("{}: {}", error, e);
+            eprintln!("{}: {}", color.error, e);
             println!(
                 "{}: Consider using this format to write to that file:\n\t{}",
                 "note".bold().green(),
@@ -89,7 +88,7 @@ fn update() {
         {
             Ok(_) => {}
             Err(e) => {
-                eprintln!("{}: {}", error, e);
+                eprintln!("{}: {}", color.error, e);
                 exit(2);
             }
         }
@@ -103,27 +102,28 @@ fn update() {
             format!("/etc/mcospkg/database/remote/{}.json", reponame),
             msg,
         ) {
-            eprintln!("{}: {}", error, errmsg);
+            eprintln!("{}: {}", color.error, errmsg);
         }
     }
 }
 
 fn add(reponame: String, repourl: String) {
-    let error = "error".red().bold();
+    let color = Color::new();
+
     // First, open the repo file
     let repofile = std::fs::OpenOptions::new()
         .write(true)
         .append(true)
         .open("/etc/mcospkg/repo.conf");
     match repofile {    // See if the file is opened
-        Err(e) => { // If not, print the error and exit
-            eprintln!("{}: {}", error, e);
+        Err(e) => { // If not, print the color.error and exit
+            eprintln!("{}: {}", color.error, e);
             exit(2);
         },
         Ok(mut repofile) => {
             match repofile.write_all(format!("{} = {}\n", reponame, repourl).as_bytes()) {    // Write the file
-                Err(e) => {     // If not, print the error and exit
-                    eprintln!("{}: {}", error, e);
+                Err(e) => {     // If not, print the color.error and exit
+                    eprintln!("{}: {}", color.error, e);
                     exit(2);
                 },
                 Ok(_) => {  // If yes, print the message

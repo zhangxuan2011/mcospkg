@@ -35,9 +35,6 @@ impl Color {
             note,
         }
     }
-
-    // This func will get the value of someone and return it.
-    todo!()
 }
 
 // This function will read the configuration file and return a HashMap
