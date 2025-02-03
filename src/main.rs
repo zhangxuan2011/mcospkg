@@ -30,7 +30,6 @@
 /// ```
 ///
 /// For more information, type: `mcospkg -h`
-
 // Now, we need to import some modules:
 use clap::Parser;
 use colored::Colorize;
@@ -146,7 +145,10 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
         let repopath = format!("/etc/mcospkg/database/remote/{}.json", reponame);
         // If index not exist, just quit
         if !Path::new(&repopath).exists() {
-            println!("{}: Repository index \"{}\" not found", color.error, reponame);
+            println!(
+                "{}: Repository index \"{}\" not found",
+                color.error, reponame
+            );
             errtime += 1;
         }
     }
@@ -176,8 +178,14 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
         let index_raw = std::fs::read_to_string(&indexpath).unwrap();
         let index: PkgIndex = serde_json::from_str(&index_raw).unwrap_or_else(|_| {
             println!("{}", color.error);
-            eprintln!("{}: Invaild PKGINDEX format (In repository {})", color.error, &reponame);
-            eprintln!("{}: Consider update the mirrorlist/mcospkg or contact the repository author.", color.note);
+            eprintln!(
+                "{}: Invaild PKGINDEX format (In repository {})",
+                color.error, &reponame
+            );
+            eprintln!(
+                "{}: Consider update the mirrorlist/mcospkg or contact the repository author.",
+                color.note
+            );
             exit(1);
         });
 
