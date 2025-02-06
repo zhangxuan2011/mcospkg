@@ -16,7 +16,6 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
  ***************************************************************************/
 #include <stdio.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -25,6 +24,7 @@
 #include <dirent.h>
 #include "Extract.h"
 #include "pmio.h"
+#include "sha256.h"
 #include "TextAttributes.h"
 
 int checkVersion(char* package_name, char* version);
@@ -261,14 +261,14 @@ int installPackageDirectly(char* work_path, char* package_name, char* version){
     ssize_t read;
 
     while ((read = getline(&line, &len, fp)) != -1) {
-            char* source_path = (char*) malloc(strlen(work_path) + strlen(line) + 1);
-            strcpy(source_path, work_path);
-            strcat(source_path, line);
-            source_path[strcspn(source_path, "\n")] = '\0';
-            line[strcspn(line, "\n")] = '\0';
-            if(!strcmp(line,"/HOOKS") || !strcmp(line,"/UNHOOKS")) continue;
-            copy_file(source_path, line);
-            free(source_path);
+        char* source_path = (char*) malloc(strlen(work_path) + strlen(line) + 1);
+        strcpy(source_path, work_path);
+        strcat(source_path, line);
+        source_path[strcspn(source_path, "\n")] = '\0';
+        line[strcspn(line, "\n")] = '\0';
+        if(!strcmp(line,"/HOOKS") || !strcmp(line,"/UNHOOKS")) continue;
+        copy_file(source_path, line);
+        free(source_path);
     }
 	free(line);
     fclose(fp);
@@ -419,7 +419,6 @@ int checkVersion(char* package_name, char* version){
 }
 
 int installPackage(char* package_path, char* package_name, char* version, char* SHA256){
-    // Tips: SHA256 is not implemented yet.just null okay
     tColorBlue();
     printf("I: ");
     textAttr_reset();
@@ -430,6 +429,15 @@ int installPackage(char* package_path, char* package_name, char* version, char* 
     fflush(stdout); 
     char directory_template[] = "/tmp/pkgTmpDirXXXXXX";
     char *temp_directory_name = mkdtemp(directory_template);
+    // 1-2 SHA256 CHECK
+    int status = 0;
+    if(!(status = sha256check(package_name, SHA256))) {
+        tColorRed();
+        printf("E: ");
+        textAttr_reset();
+        printf("Package not valid: package '%s'%s!\n", package_name, (status == -1) ? "not exists!" : "is broken!");
+        exit(1);
+    }
     // 2. Unpack package
     extractArchiveLinux(package_path, temp_directory_name);
     printf("Done.\n\n");
