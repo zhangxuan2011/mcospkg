@@ -27,12 +27,14 @@
 #include "pmio.h"
 #include "TextAttributes.h"
 
-int copy_file(char* src, char* target) { // TODO: Rewrite it in future!
+int checkVersion(char* package_name, char* version);
+
+int copy_file(char* src, char* target) { // Copy files
+
     int copy_file_length = 13 + strlen(src) + strlen(target) + 1;
     char *copy_file = (char*) malloc(copy_file_length);
     snprintf(copy_file, copy_file_length, "sudo cp \"%s\" \"%s\"", src, target);
-    system(copy_file);
-    return 0;
+    return system(copy_file);
 }
 
 int rm_file(char* dir_name) { // Remove file or directory, rewrite it in future!(maybe)
@@ -53,7 +55,7 @@ void releaseObject(char* hook_file, char* build_script_file) { // NOTE: IMPORTAN
     return;
 }
 
-void registerRemoveInfo(char* work_path, char* package_name) { // Register Remove Info, like its name
+void registerRemoveInfo(char* work_path, char* package_name, char* version) { // Register Remove Info, like its name
     mkdir("/etc/mcospkg/database/remove_info", 777);	// if not exists, make directory to save remove infos
     // 1. Copy script
     int unhook_file_length = strlen(work_path) + strlen("/UNHOOKS") + 1;	// get string length
@@ -66,10 +68,22 @@ void registerRemoveInfo(char* work_path, char* package_name) { // Register Remov
 	copy_file(unhook_file, target);
     free(unhook_file); // free memory space
     unhook_file = NULL;
+
+    int version_info_length = strlen("/etc/mcospkg/database/remove_info/") + package_name + 1;
+    char* version_info = (char*) malloc(version_info_length);
+    snprintf(version_info, version_info_length, "/etc/mcospkg/database/packages.toml", package_name);
+    FILE* version_info_file = fopen(version_info, "a");
+    fprintf(version_info_file, "[%s]version = \"%s\"\ndependencies = []\n\n", package_name);
+    fclose(version_info_file);
+
+    free(target);
+    free(version_info);
+    target = NULL;
+    version_info = NULL;
     return;
 }
 
-void cleanOperation(char* work_path, char* package_name) { // NOTE:Run it in last, and don't do anything
+void cleanOperation(char* work_path, char* package_name, char* version) { // NOTE:Run it in last, and don't do anything
     // 1. Run script
     tColorBlue(); // color:blue
     printf("II: ");
@@ -97,7 +111,7 @@ void cleanOperation(char* work_path, char* package_name) { // NOTE:Run it in las
     textAttr_reset(); // reset text attributes
     printf("Removing trash directory...\t");
     fflush(stdout);
-    registerRemoveInfo(work_path, package_name); // register remove info(for remove)
+    registerRemoveInfo(work_path, package_name, version); // register remove info(for remove)
     rm_file(work_path); // remove work directory
     tColorGreen(); // color:green
     printf("Done!\n");
@@ -107,7 +121,7 @@ void cleanOperation(char* work_path, char* package_name) { // NOTE:Run it in las
     free(script_command);
 }
 
-void installPackageFromSource(char* work_path, char* package_name){ // NOTE:BUILD CODE AND STILL NOT TESTED!
+void installPackageFromSource(char* work_path, char* package_name, char* version){ // NOTE:BUILD CODE AND STILL NOT TESTED!
     // 1. Prepare to build
     int build_script_file_length = strlen(work_path) + strlen("/BUILD-SCRIPT") + 1;
     char *build_script_file = (char*) malloc(build_script_file_length); // Alloc memory space
@@ -135,7 +149,7 @@ void installPackageFromSource(char* work_path, char* package_name){ // NOTE:BUIL
     printf("Build\t--Over\n");
     textAttr_reset(); // reset text attributes
     // 4. Clean operation
-    cleanOperation(work_path, package_name);
+    cleanOperation(work_path, package_name, version);
     free(build_script_file);
     free(build_command);
     return;
@@ -207,7 +221,7 @@ void getDirectoryIndex(char* work_path, char* path, char* name, char* index_path
     free(new_path);
 }
 
-int installPackageDirectly(char* work_path, char* package_name){
+int installPackageDirectly(char* work_path, char* package_name, char* version){
     tColorBlue();
     printf("II: ");
     textAttr_reset();
@@ -262,13 +276,13 @@ int installPackageDirectly(char* work_path, char* package_name){
     printf("Done.\n");
     textAttr_reset();
     // 3. Run HOOKS file and clean directory
-    cleanOperation(work_path, package_name);
+    cleanOperation(work_path, package_name, version);
     // 4. Clean pointers
     free(index_path);
     return 0;
 }
 
-void run_unhooks(char* package_name){
+void run_unhooks(char* package_name) {
     tColorBlue();
     printf("II: ");
     textAttr_reset();
@@ -279,7 +293,7 @@ void run_unhooks(char* package_name){
     char* unhook_file = (char*) malloc(unhook_file_length);
     snprintf(unhook_file, unhook_file_length, "/etc/mcospkg/database/remove_info/%s-UNHOOKS", package_name);
 	
-	if(!exists(unhook_file)){
+	if (!exists(unhook_file)) { 
         tColorRed();
         printf("Error\nE: ");
         textAttr_reset();
@@ -303,7 +317,7 @@ void run_unhooks(char* package_name){
     remove(unhook_file);
 }
 
-void removePackage(char* package_name){
+void removePackage(char* package_name) {
     // 1. Get types
     int index_path_length = strlen("/etc/mcospkg/database/remove_info/-file-index") + strlen(package_name) + 1;
     char* index_path = (char*) malloc(index_path_length);
@@ -334,7 +348,7 @@ void removePackage(char* package_name){
         free(line);
         remove(index_path);
         run_unhooks(package_name);
-    }else{ // BUILD-SCRIPTS
+    } else { // BUILD-SCRIPTS
         // Run UNHOOKS and done.
         tColorBlue();
         printf("II: ");
@@ -345,36 +359,81 @@ void removePackage(char* package_name){
     free(index_path);
 }
 
-int installPackage(char* package_path, char* package_name){
+int checkVersionNumber(char* old, char* new) { // the friendly AIGC
+    // 1. Split version
+    char* old_version = strtok(old, ".");
+    char* new_version = strtok(new, ".");
+    // 2. Compare version
+    while(old_version != NULL && new_version != NULL){
+        int old_version_number = atoi(old_version);
+        int new_version_number = atoi(new_version);
+        if(old_version_number < new_version_number){ // old < new
+            return 1; // Upgrade
+        }else if(old_version_number > new_version_number){ // old > new
+            return 2; // Downgrade
+        }
+        old_version = strtok(NULL, ".");
+        new_version = strtok(NULL, ".");
+    }
+    return 0; // Same version
+}
+
+int checkVersion(char* package_name, char* version){
+    // 1. Get types
+    int index_path_length = strlen("/etc/mcospkg/database/remove_info/packages.toml") + 1;
+    char* index_path = (char*) malloc(index_path_length);
+    snprintf(index_path, index_path_length, "/etc/mcospkg/database/remove_info/%s.toml", package_name);
+    // 2. Check exists
+    if(!exists(index_path)){
+        return -1;
+    }
+    // 3. Check version
+    FILE* fp = fopen(index_path, "r");    
+    char *line = NULL;
+    size_t len = 0;
+    ssize_t read;
+    char* ifpkgname = (char*) malloc(strlen(package_name) + 5);
+    strcpy(ifpkgname, "[");
+    strcat(ifpkgname, package_name);
+    strcat(ifpkgname, "]\n");
+    while((read = getline(&line, &len, fp))!= -1){
+        if(strcmp(line, ifpkgname) == 0){
+            while((read = getline(&line, &len, fp))!= -1){
+                if(strncmp(line, "version = ", 10) == 0){
+                    char* version_str = (char*) malloc(strlen(line) - 10);
+                    strcpy(version_str, line + 10);
+                    version_str[strcspn(version_str, "\n")] = '\0';
+                    return checkVersionNumber(version_str, version);
+                    break;
+                }
+            }
+        }
+    }
+    /* Tips: return value -2 means have some errors
+    * return -1 means package not found
+    * return 0 means version is same
+    * return 1 means version is upgrade
+    * return 2 means version will downgrade
+    */
+    return -2;
+}
+
+int installPackage(char* package_path, char* package_name, char* version, char* SHA256){
+    // Tips: SHA256 is not implemented yet.just null okay
     tColorBlue();
     printf("I: ");
     textAttr_reset();
 	printf("Package Name:%s\n", package_name); // NOTE: Output Package Name, can delete
     mkdir("/etc/mcospkg/database", 777);
-    // 1. Check package exists
-    printf("Checking if the package is installed...\t");
-    fflush(stdout); 
-    int unhook_length = 44 + strlen(package_name);
-    char* unhook = (char*) malloc(unhook_length);
-    snprintf(unhook, unhook_length, "/etc/mcospkg/database/remove_info/%s-UNHOOKS", package_name);
-    
-    if(exists(unhook)){
-        tColorRed();
-        printf("Installed!\nE: ");
-        textAttr_reset();
-        perror("Package exists!\n");
-    }
-    
-    printf("None.\n");
-    // 2. Create temp directory
+    // 1. Create temp directory
     printf("Extracting... ");
     fflush(stdout); 
     char directory_template[] = "/tmp/pkgTmpDirXXXXXX";
     char *temp_directory_name = mkdtemp(directory_template);
-    // 3. Unpack package
+    // 2. Unpack package
     extractArchiveLinux(package_path, temp_directory_name);
     printf("Done.\n\n");
-    // 4. Build or copy
+    // 3. Build or copy
     int build_script_file_length = strlen(temp_directory_name) + strlen("/BUILD-SCRIPT") + 1;
     char *build_script_file = (char*) malloc(build_script_file_length); // Alloc memory space
     snprintf(build_script_file, build_script_file_length, "%s/BUILD-SCRIPT", temp_directory_name); // Memory safe version
@@ -396,10 +455,31 @@ int installPackage(char* package_path, char* package_name){
         rm_file(temp_directory_name);
         exit(-1);
     }
+    if(checkVersion(package_name, version) >= 0){
+        releaseObject(hook_file, build_script_file);
+        tColorRed();
+        printf("E: ");
+        textAttr_reset();
+        printf("Package version is same! skiped.\n");
+        rm_file(temp_directory_name);
+        exit(-1);
+    }
+    if(checkVersion(package_name, version) == 2){
+        releaseObject(hook_file, build_script_file);
+        tColorRed();
+        printf("E: ");
+        textAttr_reset();
+        printf("Downgrade is not allowed!\n");
+        rm_file(temp_directory_name);
+        exit(-1);
+    }
+    if(checkVersion(package_name, version) == 1){
+        removePackage(package_name);
+    }
     if(!exists(build_script_file)){
-        installPackageDirectly(temp_directory_name, package_name);
+        installPackageDirectly(temp_directory_name, package_name, version);
     }else{
-        installPackageFromSource(temp_directory_name, package_name); // Build from source code
+        installPackageFromSource(temp_directory_name, package_name, version); // Build from source code
     }
     
     releaseObject(hook_file, build_script_file);
