@@ -80,7 +80,7 @@ fn update() {
     // Second, create the dir if not exist
     // Dir we store database: /etc/mcospkg/database/remote
     if !std::path::Path::new("/etc/mcospkg/database/remote").exists() {
-        println!("Creating directory /etc/mcospkg/database/remote...");
+        println!("{}: Creating directory /etc/mcospkg/database/remote...", color.info);
         match Command::new("mkdir")
             .arg("-p")
             .arg("/etc/mcospkg/database/remote")
@@ -95,7 +95,7 @@ fn update() {
     }
 
     // Third, download the file
-    println!("Updating index file...");
+    println!("{}: Updating index file...", color.info);
     for ((reponame, repourl), msg) in repoindex.into_iter().zip(repo_msgs.into_iter()) {
         if let Err(errmsg) = download(
             format!("{}/PKGINDEX.json", repourl),

@@ -326,7 +326,7 @@ void removePackage(char* package_name) {
     tColorBlue();
     printf("I: ");
     textAttr_reset();
-	printf("Package Name:%s\n", package_name); // NOTE: Output Package Name, can delete
+	printf("Package Name: %s\n", package_name); // NOTE: Output Package Name, can delete
     if (exists(index_path)) { // Directly
         tColorBlue();
         printf("II: ");

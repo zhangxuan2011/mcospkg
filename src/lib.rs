@@ -37,11 +37,11 @@ impl Color {
     }
 }
 
-// This function will read the configuration file and return a HashMap
-// The HashMap's key is the repository name, and the value is the repository URL
-// If the configuration file is not found, it will return an error
-// If the configuration file is not in the correct format, it will return an error, too.
-// The format is: [reponame] = [repourl]
+/// This function will read the configuration file and return a HashMap
+/// The HashMap's key is the repository name, and the value is the repository URL
+/// If the configuration file is not found, it will return an error
+/// If the configuration file is not in the correct format, it will return an error, too.
+/// The format is: [reponame] = [repourl]
 pub fn readcfg() -> Result<HashMap<String, String>, Error> {
     // First, read the configuration
     let mut repoconf_raw = fs::read_to_string("/etc/mcospkg/repo.conf").map_err(|_| {
@@ -73,10 +73,10 @@ pub fn readcfg() -> Result<HashMap<String, String>, Error> {
     Ok(repoconf)
 }
 
-// This function will download a file from a URL and save it to a file
-// The URL is the URL of the file
-// The save is the path of the file to save
-// The msg is the message to show in the progress bar
+/// This function will download a file from a URL and save it to a file
+/// The URL is the URL of the file
+/// The save is the path of the file to save
+/// The msg is the message to show in the progress bar
 pub fn download(url: String, save: String, msg: &'static str) -> Result<(), Error> {
     let mut resp =
         get(url).map_err(|e| Error::new(ErrorKind::Other, format!("Cannot fetch file: {}", e)))?;
@@ -119,3 +119,4 @@ pub fn download(url: String, save: String, msg: &'static str) -> Result<(), Erro
     pb.finish();
     Ok(())
 }
+

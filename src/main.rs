@@ -30,6 +30,7 @@
 /// ```
 ///
 /// For more information, type: `mcospkg -h`
+//
 // Now, we need to import some modules:
 use clap::Parser;
 use colored::Colorize;
@@ -43,6 +44,7 @@ use std::ffi::CString;
 use std::fmt;
 use std::path::Path;
 use std::process::exit;
+use toml;
 
 // Import C Libs(libpkgmgr.a)
 extern "C" {
@@ -60,7 +62,10 @@ extern "C" {
 
 // Define argument lists
 struct Args {
-    #[arg(required = true, help = "Supports: install/remove/update/reinstall")]
+    #[arg(
+        required = true,
+        help = "Supports: install/remove/remove-all/update/reinstall"
+    )]
     option: String,
 
     #[arg(required = false)]
@@ -99,6 +104,15 @@ struct PkgIndex {
     // group: HashMap<String, String>, // TODO: Support group
 }
 
+// =====toml define area=====
+// This defines the toml format (/etc/mcospkg/database/package_info.toml)
+// This is for uninstall only
+#[derive(Debug, Deserialize, Serialize)]
+struct PkgInfoToml {
+    dependencies: Vec<String>,
+    version: String,
+}
+
 // ========functions define area==========
 fn main() {
     let color = Color::new();
@@ -117,7 +131,13 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
 
     // Tell user is this mode is "reinstall"
     if reinstall {
-        println!("{}: Reinstall mode enabled.", color.note);
+        println!("{}: Reinstall mode has been enabled.", color.note);
+    }
+
+    // Next, check if pkgindex is empty
+    if pkglist.is_empty() {
+        println!("{}: No package(s) specified.", color.error);
+        exit(2);
     }
 
     // Stage 1: Explain the package
@@ -140,7 +160,7 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
 
     // Second, check if index is exist
     let _repopath: String = String::new(); //  We'll use it later
-    let mut errtime = 0; // This will record the color.error times
+    let mut errtime = 0; // This will record the error times
     for (reponame, _) in &repoindex {
         let repopath = format!("/etc/mcospkg/database/remote/{}.json", reponame);
         // If index not exist, just quit
@@ -159,12 +179,6 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
             "mcospkg-mirror update".cyan()
         );
         exit(1);
-    }
-
-    // Next, check if pkgindex is empty
-    if pkglist.len() <= 0 {
-        println!("{}: No package(s) specified.", color.error);
-        exit(2);
     }
 
     // And, read the PKGINDEX
@@ -329,7 +343,7 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
             exit(1);
         }
     } else {
-        println!("\nDo you want to continue? (y/n): y");
+        println!("\nADo you proceed to install these packages? (y/n): y");
     }
 
     // Now user allowed to install packages by using mcospkg. Congratulations :) !
@@ -449,9 +463,115 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
 // =====S====P====L====I====T=====
 // This is the remove function
 
-fn remove(pkglist: Vec<String>, _bypass_ask: bool) {
-    for pkg in pkglist {
-        let package_name = CString::new(pkg.as_str()).unwrap();
+fn remove(pkglist: Vec<String>, bypass_ask: bool) {
+    // Presets
+    let color = Color::new();
+
+    // Ensure the pkglist is not empty
+    if pkglist.is_empty() {
+        eprintln!("{}: No package(s) specified.", color.error);
+        exit(1);
+    }
+
+    // Stage 1: Explain the package
+    // In "Remove" function, the most important is the dependencies.
+    // In "/etc/mcospkg/package_info.toml", in each file's dependencies, defined it.
+    // For example:
+    /* [package_name]
+       version = "0.1.1"
+       dependencies = [
+           "dep1",
+           "dep2",
+           "dep3",
+           ...,
+           "depn"
+       ]
+    */
+    // Parse it
+    let package_info_raw = std::fs::read_to_string("/etc/mcospkg/database/package_info.toml")
+        .unwrap_or_else(|err| {
+            // If it is not exist, quit
+            eprintln!(
+                "{}: Cannot read the package info \"/etc/mcospkg/database/package_info.toml\": {}",
+                color.error, err
+            );
+            exit(1);
+        });
+    let package_info: HashMap<String, PkgInfoToml> = toml::from_str(&package_info_raw)
+        .unwrap_or_else(|_| {
+            eprintln!(
+                "{}: Invaild format in \"/etc/mcospkg/database/package_info.toml\".",
+                color.error
+            );
+            exit(1);
+        }); // Main parsing code
+
+    // Stage 2: Check the dependencies
+    // Get its keys
+    let mut package_info_keys: Vec<String> = Vec::new();
+    for (key, _) in package_info.iter() {
+        package_info_keys.push(key.clone());
+    }
+
+
+
+    // Make sure the specified the package is exist in that file
+    // Check the HashMap's key is ok.
+    let mut errtime = 0;
+    for package in &pkglist {
+        if !package_info_keys.contains(package) {
+            eprintln!(
+                "{}: Package \"{}\" is not installed, so we have no idea (T_T)",
+                color.error, package
+            );
+            errtime += 1;
+        }
+    }
+
+    if errtime > 0 {
+        eprintln!("{}: {} errors occurred, terminated.", color.error, errtime);
+        exit(1)
+    }
+
+    // Then let's see see...
+    print!("{}: Resolving dependencies... ", color.info);
+
+    // Read the vector "dependencies"
+    let mut dependencies: Vec<String> = Vec::new();
+    for pkg in &pkglist {
+        for dep in &package_info[pkg].dependencies {
+            dependencies.push(dep.clone());
+        }
+    }
+    println!("{}", color.done);
+
+    // Merge them
+    let mut delete_pkgs = pkglist.clone();
+    delete_pkgs.append(&mut dependencies);
+
+    // Stage 3: Ask user
+    println!("{}: The following packages will be removed:", color.info);
+    for pkg in &delete_pkgs {
+        print!("{} ", pkg);
+    }
+    println!(); // Make sure it can show normally
+
+    if !bypass_ask {
+        let input: String = Input::new()
+            .with_prompt("\nDo you want to continue? (y/n)")
+            .interact_text()
+            .unwrap();
+        if input != "y" && input != "Y" {
+            println!("{}: User rejected the uninstallation request", color.error);
+            exit(1);
+        }
+    } else {
+        println!("\nADo you proceed to remove these packages? (y/n): y");
+    }
+
+    // Last, remove it.
+    for delete_pkg in &delete_pkgs {
+        let package_name = CString::new(delete_pkg.as_str()).unwrap();
         unsafe { removePackage(package_name.as_ptr()) }
     }
 }
