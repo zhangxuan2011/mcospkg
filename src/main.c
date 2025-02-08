@@ -418,7 +418,7 @@ int checkVersion(char* package_name, char* version){
     return -2;
 }
 
-int installPackage(char* package_path, char* package_name, char* version, char* SHA256){
+int installPackage(char* package_path, char* package_name, char* version){
     tColorBlue();
     printf("I: ");
     textAttr_reset();
