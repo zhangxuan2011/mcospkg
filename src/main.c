@@ -1,5 +1,5 @@
-/***************************************************************************
- *   Copyright (C)                                                         *
+rain/***************************************************************************
+rainrain *   Copyright (C)                                                         *
  *   Email:                                                                *
  *                                                                         *
  *   This program is free software: you can redistribute it and/or modify  *
@@ -422,20 +422,19 @@ int installPackage(char* package_path, char* package_name, char* version, char* 
     tColorBlue();
     printf("I: ");
     textAttr_reset();
-	printf("Package Name:%s\n", package_name); // NOTE: Output Package Name, can delete
+    printf("Package Name:%s\n", package_name); // NOTE: Output Package Name, can delete
     mkdir("/etc/mcospkg/database", 777);
     // 1. Create temp directory
     printf("Extracting... ");
     fflush(stdout); 
     char directory_template[] = "/tmp/pkgTmpDirXXXXXX";
     char *temp_directory_name = mkdtemp(directory_template);
-    // 1-2 SHA256 CHECK
-    int status = 0;
-    if(!(status = sha256check(package_name, SHA256))) {
+    // 1-2 Check Exists
+    if(!(exists(package_path)) {
         tColorRed();
         printf("E: ");
         textAttr_reset();
-        printf("Package not valid: package '%s'%s!\n", package_name, (status == -1) ? "not exists!" : "is broken!");
+        printf("Package not valid: package '%s' not exists!!\n", package_name);
         exit(1);
     }
     // 2. Unpack package
