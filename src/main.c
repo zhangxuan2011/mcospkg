@@ -24,7 +24,7 @@ rainrain *   Copyright (C)                                                      
 #include <dirent.h>
 #include "Extract.h"
 #include "pmio.h"
-#include "sha256.h"
+#include <unistd.h>
 #include "TextAttributes.h"
 
 int checkVersion(char* package_name, char* version);
