@@ -1,6 +1,7 @@
 /***************************************************************************
-*   Copyright (C)                                                         *
- *   Email:                                                                *
+ *   Copyright (C)                                                         *
+ *                                                                         *
+ *   Email:  rainyhowcool@outlook.com                                      *
  *                                                                         *
  *   This program is free software: you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -70,7 +71,7 @@ void registerRemoveInfo(char* work_path, char* package_name, char* version) { //
     free(unhook_file); // free memory space
     unhook_file = NULL;
 
-    int version_info_length = strlen("/etc/mcospkg/database/remove_info/") + package_name + 1;
+    int version_info_length = strlen("/etc/mcospkg/database/remove_info/") + strlen(package_name) + 1;
     char* version_info = (char*) malloc(version_info_length);
     snprintf(version_info, version_info_length, "/etc/mcospkg/database/packages.toml");
     FILE* version_info_file = fopen(version_info, "a");
