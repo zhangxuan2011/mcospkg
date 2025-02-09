@@ -142,9 +142,9 @@ void installPackageFromSource(char* work_path, char* package_name, char* version
     textAttr_reset(); // reset text attributes
     printf("Start building.\n");
     chmod(build_script_file, 777); // Mode 777
-    int build_command_length = strlen("sudo ") + build_script_file_length;
+    int build_command_length = strlen("sudo ") + build_script_file_length + strlen(" > /dev/null") + 1;
     char *build_command = (char*) malloc(build_command_length); // Alloc memory space
-    snprintf(build_command, build_command_length, "sudo %s", build_script_file);
+    snprintf(build_command, build_command_length, "sudo %s > /dev/null", build_script_file);
     system(build_command); // run build script
     tColorGreen(); // color:green
     printf("Build\t--Over\n");
