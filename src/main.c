@@ -25,6 +25,7 @@ rainrain *   Copyright (C)                                                      
 #include "Extract.h"
 #include "pmio.h"
 #include <unistd.h>
+#include <stddef.h>
 #include "TextAttributes.h"
 
 int checkVersion(char* package_name, char* version);
@@ -430,7 +431,7 @@ int installPackage(char* package_path, char* package_name, char* version){
     char directory_template[] = "/tmp/pkgTmpDirXXXXXX";
     char *temp_directory_name = mkdtemp(directory_template);
     // 1-2 Check Exists
-    if(!(exists(package_path)) {
+    if(!(exists(package_path))) {
         tColorRed();
         printf("E: ");
         textAttr_reset();
