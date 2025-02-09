@@ -1,7 +1,6 @@
 /***************************************************************************
- *   Copyright (C)                                                         *
- *                                                                         *
- *   Email:  rainyhowcool@outlook.com                                      *
+*   Copyright (C)                                                         *
+ *   Email:                                                                *
  *                                                                         *
  *   This program is free software: you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -71,11 +70,11 @@ void registerRemoveInfo(char* work_path, char* package_name, char* version) { //
     free(unhook_file); // free memory space
     unhook_file = NULL;
 
-    int version_info_length = strlen("/etc/mcospkg/database/remove_info/") + strlen(package_name) + 1;
+    int version_info_length = strlen("/etc/mcospkg/database/remove_info/") + package_name + 1;
     char* version_info = (char*) malloc(version_info_length);
     snprintf(version_info, version_info_length, "/etc/mcospkg/database/packages.toml");
     FILE* version_info_file = fopen(version_info, "a");
-    fprintf(version_info_file, "[%s]version = \"%s\"\ndependencies = []\n\n", package_name, version);
+    fprintf(version_info_file, "[%s]\nversion = \"%s\"\ndependencies = []\n\n", package_name, version);
     fclose(version_info_file);
 
     free(target);
@@ -272,7 +271,7 @@ int installPackageDirectly(char* work_path, char* package_name, char* version){
         copy_file(source_path, line);
         free(source_path);
     }
-	free(line);
+    free(line);
     fclose(fp);
     tColorGreen();
     printf("Done.\n");
@@ -295,16 +294,51 @@ void run_unhooks(char* package_name) {
     char* unhook_file = (char*) malloc(unhook_file_length);
     snprintf(unhook_file, unhook_file_length, "/etc/mcospkg/database/remove_info/%s-UNHOOKS", package_name);
 	
-	if (!exists(unhook_file)) { 
+    if (!exists(unhook_file)) { 
         tColorRed();
         printf("Error\nE: ");
         textAttr_reset();
         printf("package not exists!\n");
         free(unhook_file);
         exit(-1);
-	}
+    }
 
-	chmod(unhook_file, 777);
+    FILE* fp = fopen("/etc/mcospkg/database/packages.toml.new", "w+");
+    FILE* fp2 = fopen("/etc/mcospkg/database/packages.toml", "w+");
+
+    int prefix_pkgname_length = strlen(package_name) + 4;
+    int remove_this_line = 0;
+	
+    char* prefix_pkgname = malloc(prefix_pkgname_length);
+	
+    strcpy(prefix_pkgname, "[");
+    strcat(prefix_pkgname, package_name);
+    strcat(prefix_pkgname, "]\n");
+
+    char *line = NULL;
+    size_t len = 0;
+    ssize_t read;
+
+    while ((read = getline(&line, &len, fp2)) != -1) {
+	if(!strcmp(prefix_pkgname, line)) {
+	    remove_this_line = 1;
+	}
+	if(!strcmp("\n", line)) {
+	    remove_this_line = 0;
+	}
+	if(!remove_this_line) {
+	    fprintf(fp, line);
+	}
+    }
+    free(line);
+
+    fclose(fp);
+    fclose(fp2);
+
+    system("rm -rf /etc/mcospkg/database/packages.toml");
+    system("mv /etc/mcospkg/database/packages.toml.new /etc/mcospkg/database/packages.toml");
+
+    chmod(unhook_file, 777);
     char* unhook_command = malloc(5 + unhook_file_length);
     strcpy(unhook_command, "sudo ");
     strcat(unhook_command, unhook_file);
