@@ -39,12 +39,11 @@ use main::install;
 use clap::Parser;
 use dialoguer::Input;
 use libc::c_char;
-use mcospkg::Color;
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use mcospkg::{Color, get_installed_package_info};
+
 use std::ffi::CString;
 use std::process::exit;
-use toml;
+
 
 // Import C Libs(libpkgmgr.a)
 extern "C" {
@@ -79,14 +78,7 @@ struct Args {
     bypass_ask: bool,
 }
 
-// =====toml define area=====
-// This defines the toml format (/etc/mcospkg/database/package.toml)
-// This is for uninstall only
-#[derive(Debug, Deserialize, Serialize)]
-struct PkgInfoToml {
-    dependencies: Vec<String>,
-    version: String,
-}
+
 
 // ========functions define area==========
 fn main() {
@@ -119,19 +111,19 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
     let mut install = install::InstallData::new();
 
     // Stage 1: Get the pkgindex from the repositories
-    install.step1(pkglist.clone()); // Stage 2: Check if the package is exist
+    install.step1_explain_pkg(pkglist.clone()); // Stage 2: Check if the package is exist
 
     // Stage 3: Check the packages' dependencies
-    install.step2(pkglist);
+    install.step2_check_deps(pkglist.clone());
 
     // Stage 4: Download the package
-    install.step3(reinstall);
+    install.step3_check_installed(reinstall, pkglist.clone());
 
     // Stage 5: Install the package
-    install.step4(bypass_ask);
+    install.step4_download(bypass_ask);
 
     // Stage 6: Install the package
-    install.step5();
+    install.step5_install();
 
     // And, that's complete!
 }
@@ -165,24 +157,8 @@ fn remove(pkglist: Vec<String>, bypass_ask: bool) {
        ]
     */
     // Parse it
-    let package_raw = std::fs::read_to_string("/etc/mcospkg/database/packages.toml")
-        .unwrap_or_else(|err| {
-            // If it is not exist, quit
-            eprintln!(
-                "{}: Cannot read the package info \"/etc/mcospkg/database/packages.toml\": {}",
-                color.error, err
-            );
-            exit(1);
-        });
-    let package: HashMap<String, PkgInfoToml> = toml::from_str(&package_raw)
-        .unwrap_or_else(|_| {
-            eprintln!(
-                "{}: Invaild format in \"/etc/mcospkg/database/packages.toml\".",
-                color.error
-            );
-            exit(1);
-        }); // Main parsing code
-
+    let package = get_installed_package_info();
+    
     // Stage 2: Check the dependencies
     // Get its keys
     let mut package_keys: Vec<String> = Vec::new();

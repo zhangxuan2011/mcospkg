@@ -5,9 +5,20 @@
 use colored::{ColoredString, Colorize};
 use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::blocking::get;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::{Error, ErrorKind, Read, Write};
+use std::process::exit;
+
+// =====toml define area=====
+// This defines the toml format (/etc/mcospkg/database/package.toml)
+// This is for uninstall only
+#[derive(Debug, Deserialize, Serialize)]
+pub struct PkgInfoToml {
+    pub dependencies: Vec<String>,
+    pub version: String,
+}
 
 // In most codes, we usually meet the colorful message. So
 // we moved them in a struct.
@@ -118,4 +129,25 @@ pub fn download(url: String, save: String, msg: &'static str) -> Result<(), Erro
 
     pb.finish();
     Ok(())
+}
+
+pub fn get_installed_package_info() -> HashMap<String, PkgInfoToml> {
+    let color = Color::new();
+    let package_raw = std::fs::read_to_string("/etc/mcospkg/database/packages.toml")
+        .unwrap_or_else(|err| {
+            // If it is not exist, quit
+            eprintln!(
+                "{}: Cannot read the package info \"/etc/mcospkg/database/packages.toml\": {}",
+                color.error, err
+            );
+            exit(1);
+        });
+    let package: HashMap<String, PkgInfoToml> = toml::from_str(&package_raw).unwrap_or_else(|_| {
+        eprintln!(
+            "{}: Invaild format in \"/etc/mcospkg/database/packages.toml\".",
+            color.error
+        );
+        exit(1);
+    }); // Main parsing code
+    package
 }

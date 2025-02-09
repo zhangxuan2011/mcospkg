@@ -1,7 +1,7 @@
 use colored::Colorize;
 use dialoguer::Input;
 use libc::{c_char, c_int};
-use mcospkg::{download, readcfg, Color};
+use mcospkg::{download, get_installed_package_info, readcfg, Color};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::ffi::CString;
@@ -39,10 +39,10 @@ pub struct InstallData {
     url_total: Vec<String>,           // The repository url
     pkgindex_total: Vec<HashMap<String, PkgInfo>>, // The package index
     baseon_total: Vec<HashMap<String, Vec<String>>>, // The package baseon
-    version_total: Vec<String>,       // The package version
+    pkg_version_index: Vec<String>,       // The package version
     pkgindex: HashMap<String, PkgInfo>, // The package index
-    fetch_index: Vec<String>,         // The package to fetch
-    file_index: Vec<String>,          // The package to fetch
+    fetch_index: Vec<String>,           // The package to fetch
+    file_index: Vec<String>,            // The package to fetch
 }
 
 // ==========Extern area==========
@@ -62,14 +62,14 @@ impl InstallData {
             url_total: vec![],
             pkgindex_total: vec![],
             baseon_total: vec![],
-            version_total: vec![],
+            pkg_version_index: vec![],
             pkgindex: std::collections::HashMap::new(),
             fetch_index: vec![],
             file_index: vec![],
         }
     }
 
-    pub fn step1(&mut self, pkglist: Vec<String>) {
+    pub fn step1_explain_pkg(&mut self, pkglist: Vec<String>) {
         let color = Color::new();
         print!("{}: Reading package index... ", color.info);
 
@@ -133,14 +133,11 @@ impl InstallData {
 
             // Add them to the total
             self.url_total.push(index.url);
-            for (_, pkg_info) in index.pkgindex.iter() {
-                self.version_total.push(pkg_info.version.clone());
-            }
             self.pkgindex_total.push(index.pkgindex);
             self.baseon_total.push(index.baseon);
         }
 
-        // Stage 2: Check if the package is exist
+        // Stage 1.5: Check if the package is exist
         self.pkgindex = HashMap::new(); // Initialize
         for (i, _) in self.pkgindex_total.iter().enumerate() {
             self.pkgindex.extend(self.pkgindex_total[i].clone());
@@ -160,7 +157,7 @@ impl InstallData {
         println!("{}", color.done);
     }
 
-    pub fn step2(&mut self, pkglist: Vec<String>) {
+    pub fn step2_check_deps(&mut self, pkglist: Vec<String>) {
         let color = Color::new();
         print!("{}: Checking package dependencies... ", color.info);
 
@@ -169,7 +166,6 @@ impl InstallData {
         // Cause the baseon_total is a vector, we need to use a loop to check it
         // First, we need to check if the package is exist in the baseon_total
         // If it is exist, we need to check if the package is exist in the baseon_total
-        print!("{}: Checking package dependencies... ", color.info);
         let mut baseon: HashMap<String, Vec<String>> = HashMap::new(); // The first string is the package name, and the second is the dependencies
         for (i, _) in self.baseon_total.iter().enumerate() {
             baseon.extend(self.baseon_total[i].clone());
@@ -209,75 +205,115 @@ impl InstallData {
         println!("{}", color.done);
     }
 
-    pub fn step3(&mut self, reinstall: bool) {
+    pub fn step3_check_installed(&mut self, reinstall: bool, pkglist: Vec<String>) {
         let color = Color::new();
+        print!("{}: Checking if the package is installed... ", color.info);
 
         // Stage 3: Check if the package is installed in the system
         // NOTE: If the "reinstall" = true, pass this stage
         // First, we need to check if the package is exist in the system
         // If it is exist, we need to ask user if they want to reinstall it
         // The method of checking is check if "/etc/mcospkg/database/remove_color.info/<package>-UNHOOKS" is exist
+        // and check if the "/etc/mcospkg/database/packages.toml" has its information
         // If it is exist, we need to ask user if they want to reinstall it
         // If it is not exist, we need to ask user if they want to install it
-        if !reinstall {
-            print!("{}: Checking if the package is installed... ", color.info);
-            for pkg in &self.fetch_index {
-                if Path::new(&format!(
-                    "/etc/mcospkg/database/remove_color.info/{}-UNHOOKS",
-                    pkg
-                ))
-                .exists()
-                {
+
+        // First, parse it
+        let installed_packages = get_installed_package_info();
+
+        // Then check
+        let mut errtime = 0;
+        for (installed_pkg, pkglist_pkg) in installed_packages.iter().zip(pkglist.iter()) {
+            if installed_pkg.0 == pkglist_pkg {
+                if reinstall {
+                    continue;
+                } else {
                     println!("{}", color.error);
                     println!(
-                        "{}: Package \"{}\" is installed, cannot reinstall it\nTo reinstall it, use \"{}\"",
-                        color.error,
-                        pkg,
-                        "mcospkg reinstall <package>".cyan()
+                        "{}: Package \"{}\" is installed, cannot reinstall it.",
+                        color.error, pkglist_pkg,
                     );
-                    exit(1)
+                    errtime += 1;
                 }
             }
         }
 
-        // If the "reinstall" = true, check is it NOT installed
-        if reinstall {
-            print!("{}: Checking if the package is installed... ", color.info);
-            for pkg in &self.fetch_index {
-                if !Path::new(&format!(
-                    "/etc/mcospkg/database/remove_color.info/{}-UNHOOKS",
-                    pkg
-                ))
-                .exists()
-                {
-                    println!("{}", color.error);
-                    println!(
-                        "{}: Package \"{}\" is not installed, cannot reinstall it without \"reinstall\" mode.\nTo install it, use \"{}\"",
-                        color.error,
-                        pkg,
-                        "mcospkg install <package>".cyan()
-                    );
-                    exit(1)
-                }
-            }
+        if errtime > 0 {
+            println!(
+                "{}: To reinstall it, use \"{}\"",
+                color.note,
+                "mcospkg reinstall <package>".cyan()
+            );
+            exit(1);
         }
+
+        // if !reinstall {
+        //     print!("{}: Checking if the package is installed... ", color.info);
+        //     for pkg in &self.fetch_index {
+        //         if Path::new(&format!(
+        //             "/etc/mcospkg/database/remove_color.info/{}-UNHOOKS",
+        //             pkg
+        //         ))
+        //         .exists()
+        //         {
+        //             println!("{}", color.error);
+        // println!(
+        //     "{}: Package \"{}\" is installed, cannot reinstall it\nTo reinstall it, use \"{}\"",
+        //     color.error,
+        //     pkg,
+        //     "mcospkg reinstall <package>".cyan()
+        // );
+        //             exit(1)
+        //         }
+        //     }
+        // }
+
+        // // If the "reinstall" = true, check is it NOT installed
+        // if reinstall {
+        //     print!("{}: Checking if the package is installed... ", color.info);
+        //     for pkg in &self.fetch_index {
+        //         if !Path::new(&format!(
+        //             "/etc/mcospkg/database/remove_color.info/{}-UNHOOKS",
+        //             pkg
+        //         ))
+        //         .exists()
+        //         {
+        //             println!("{}", color.error);
+        //             println!(
+        //                 "{}: Package \"{}\" is not installed, cannot reinstall it without \"reinstall\" mode.\nTo install it, use \"{}\"",
+        //                 color.error,
+        //                 pkg,
+        //                 "mcospkg install <package>".cyan()
+        //             );
+        //             exit(1)
+        //         }
+        //     }
+        // }
         println!("{}", color.done);
     }
 
-    pub fn step4(&mut self, bypass_ask: bool) {
+    pub fn step4_download(&mut self, bypass_ask: bool) {
         let color = Color::new();
 
         // Stage 4: Download the package
-        // First, we need to ask user that if they want to install it
-        println!("{}: The following packages is being installed:", color.info);
-        for pkg in &self.fetch_index {
-            print!("{} ", pkg);
+        // First, get package's version
+        // Then, we need to ask user that if they want to install it
+        println!("{}: The following packages is being (re)installed:", color.info);
+        let len = self.fetch_index.len();
+        for (i, pkg) in self.fetch_index.clone().into_iter().enumerate() {
+            let pkg_version = self.pkgindex.get(&pkg).unwrap().version.clone();
+            self.pkg_version_index.push(pkg_version.clone());
+            if i < len - 1 {
+                print!("{} ({}), ", pkg, pkg_version);
+            } else {
+                print!("{} ({})", pkg, pkg_version);
+            }
         }
         println!("");
 
         if !bypass_ask {
             let input: String = Input::new()
-                .with_prompt("\nDo you want to continue? (y/n)")
+                .with_prompt("\nProceed to install these packages? (y/n)")
                 .interact_text()
                 .unwrap();
             if input != "y" && input != "Y" {
@@ -285,7 +321,7 @@ impl InstallData {
                 exit(1);
             }
         } else {
-            println!("\nADo you proceed to install these packages? (y/n): y");
+            println!("\nProceed to install these packages? (y/n): y");
         }
 
         // Now user allowed to install packages by using mcospkg. Congratulations :) !
@@ -318,7 +354,6 @@ impl InstallData {
         // How to download? use the library we've imported - download.
         // Define something
         let mut pkg_msgs: Vec<&'static str> = Vec::new(); // This will record the message of downloading
-        let mut pkg_version_index = Vec::new(); // This will record the package's version
 
         for pkgname in &self.fetch_index {
             let pkg_msg = format!("{}", pkgname);
@@ -326,7 +361,8 @@ impl InstallData {
             pkg_msgs.push(pkg_msg);
         }
 
-        for (pkg, msg) in self.fetch_index
+        for (pkg, msg) in self
+            .fetch_index
             .clone()
             .into_iter()
             .zip(pkg_msgs.into_iter())
@@ -340,9 +376,6 @@ impl InstallData {
 
             // And, get the pkg file
             let pkg_file = self.pkgindex.get(&pkg).unwrap().filename.clone();
-
-            // Then, get package's version
-            let pkg_version = self.pkgindex.get(&pkg).unwrap().version.clone();
 
             // Now, we need to generate its path and url
             let pkg_url = format!("{}/{}/{}", repo_url, pkg_name, pkg_file);
@@ -368,11 +401,10 @@ impl InstallData {
             }
             // And, add it to the file index - use it later
             self.file_index.push(pkg_path.clone());
-            pkg_version_index.push(pkg_version.clone());
         }
     }
 
-    pub fn step5(&mut self) {
+    pub fn step5_install(&mut self) {
         let color = Color::new();
         println!("{}: Installing packages... ", color.info);
 
@@ -382,14 +414,14 @@ impl InstallData {
         // So, we need to use the C library to install the package
         // First, we need to convert the string to CString
         let mut c_file_index: Vec<CString> = Vec::new(); // Record the index, we'll use it
-        // Convert the string to CString
+                                                         // Convert the string to CString
         for filepath in &self.file_index {
             let c_pkg = CString::new(filepath.clone()).unwrap();
             c_file_index.push(c_pkg);
         }
         // Convert version_total to CString
         let mut c_version_total: Vec<CString> = Vec::new();
-        for version in &self.version_total {
+        for version in &self.pkg_version_index {
             let c_version = CString::new(version.clone()).unwrap();
             c_version_total.push(c_version);
         }
