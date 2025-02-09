@@ -345,11 +345,11 @@ void run_unhooks(char* package_name) {
     fclose(fp);
     fclose(fp2);
 
-    system("rm -rf /etc/mcospkg/database/packages.toml");
-    system("mv /etc/mcospkg/database/packages.toml.new /etc/mcospkg/database/packages.toml");
+    system("rm -rf /etc/mcospkg/database/packages.toml &> /dev/null");
+    system("mv /etc/mcospkg/database/packages.toml.new /etc/mcospkg/database/packages.toml &> /dev/null");
 
     chmod(unhook_file, 777);
-    char* unhook_command = malloc(5 + unhook_file_length);
+    char* unhook_command = malloc(5 + unhook_file_length + strlen(" > /dev/null 2>&1") + 1);
     strcpy(unhook_command, "sudo ");
     strcat(unhook_command, unhook_file);
     strcat(unhook_command, " > /dev/null 2>&1"); // redirect output to null(ignore output)
