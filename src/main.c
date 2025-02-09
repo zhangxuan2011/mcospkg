@@ -1,5 +1,5 @@
-rain/***************************************************************************
-rainrain *   Copyright (C)                                                         *
+/***************************************************************************
+*   Copyright (C)                                                         *
  *   Email:                                                                *
  *                                                                         *
  *   This program is free software: you can redistribute it and/or modify  *
@@ -13,7 +13,7 @@ rainrain *   Copyright (C)                                                      
  *   GNU General Public License for more details.                          *
  *                                                                         *
  *   You should have received a copy of the GNU General Public License     *
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
+ *   along with this program.  If not, see <http://www.gnu.org/licenses/>.	
  ***************************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
@@ -72,9 +72,9 @@ void registerRemoveInfo(char* work_path, char* package_name, char* version) { //
 
     int version_info_length = strlen("/etc/mcospkg/database/remove_info/") + package_name + 1;
     char* version_info = (char*) malloc(version_info_length);
-    snprintf(version_info, version_info_length, "/etc/mcospkg/database/packages.toml", package_name);
+    snprintf(version_info, version_info_length, "/etc/mcospkg/database/packages.toml");
     FILE* version_info_file = fopen(version_info, "a");
-    fprintf(version_info_file, "[%s]version = \"%s\"\ndependencies = []\n\n", package_name);
+    fprintf(version_info_file, "[%s]version = \"%s\"\ndependencies = []\n\n", package_name, version);
     fclose(version_info_file);
 
     free(target);
