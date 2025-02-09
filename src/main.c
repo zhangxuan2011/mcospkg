@@ -303,8 +303,17 @@ void run_unhooks(char* package_name) {
         exit(-1);
     }
 
-    FILE* fp = fopen("/etc/mcospkg/database/packages.toml.new", "w+");
-    FILE* fp2 = fopen("/etc/mcospkg/database/packages.toml", "w+");
+    if(!exists("/etc/mcospkg/database/packages.toml.new")){
+	tColorRed();
+        printf("Error\nE: ");
+        textAttr_reset();
+        printf("package not exists!\n");
+        free(unhook_file);
+        exit(-1);
+    }
+	
+    FILE* fp = fopen("/etc/mcospkg/database/packages.toml.new", "w");
+    FILE* fp2 = fopen("/etc/mcospkg/database/packages.toml", "r");
 
     int prefix_pkgname_length = strlen(package_name) + 4;
     int remove_this_line = 0;
@@ -330,6 +339,7 @@ void run_unhooks(char* package_name) {
 	    fprintf(fp, line);
 	}
     }
+	
     free(line);
 
     fclose(fp);
