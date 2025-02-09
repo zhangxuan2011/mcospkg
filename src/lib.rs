@@ -93,7 +93,7 @@ pub fn download(url: String, save: String, msg: &'static str) -> Result<(), Erro
     let pb = ProgressBar::new(resp.content_length().unwrap_or(0));
     pb.set_style(
         ProgressStyle::default_bar()
-            .template("{msg} [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})\n")
+            .template("{msg} {eta_precise} [{bar:40.cyan/blue}] {bytes}/{total_bytes} {binary_bytes_per_sec}\n")
             .unwrap()
             .progress_chars("##-"),
     );

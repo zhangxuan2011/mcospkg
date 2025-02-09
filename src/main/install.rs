@@ -1,7 +1,7 @@
-use mcospkg::{download, readcfg, Color};
 use colored::Colorize;
 use dialoguer::Input;
 use libc::{c_char, c_int};
+use mcospkg::{download, readcfg, Color};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::ffi::CString;
@@ -69,14 +69,16 @@ impl InstallData {
         }
     }
 
-    pub fn step1(&mut self) {
+    pub fn step1(&mut self, pkglist: Vec<String>) {
         let color = Color::new();
+        print!("{}: Reading package index... ", color.info);
+
         // Stage 1: Explain the package
         // First, load configuration and get its HashMap
         match readcfg() {
             Err(e) => {
                 println!("{}: {}", color.error, e);
-                eprintln!(
+                println!(
                     "{}: Consider using this format to write to that file:\n\t{}",
                     color.note,
                     "[reponame] = [repourl]".cyan()
@@ -95,7 +97,7 @@ impl InstallData {
             let repopath = format!("/etc/mcospkg/database/remote/{}.json", reponame);
             // If index not exist, just quit
             if !Path::new(&repopath).exists() {
-                eprintln!(
+                println!(
                     "{}: Repository index \"{}\" not found",
                     color.error, reponame
                 );
@@ -103,7 +105,7 @@ impl InstallData {
             }
         }
         if errtime > 0 {
-            eprintln!(
+            println!(
                 "{}: use \"{}\" to download it.",
                 color.tip,
                 "mcospkg-mirror update".cyan()
@@ -118,11 +120,11 @@ impl InstallData {
             let index_raw = std::fs::read_to_string(&indexpath).unwrap();
             let index: PkgIndex = serde_json::from_str(&index_raw).unwrap_or_else(|_| {
                 println!("{}", color.error);
-                eprintln!(
-                    "{}: Invaild PKGINDEX format (In repository {})",
+                println!(
+                    "{}: Invaild PKGINDEX format (In repository \"{}\")",
                     color.error, &reponame
                 );
-                eprintln!(
+                println!(
                     "{}: Consider update the mirrorlist/mcospkg or contact the repository author.",
                     color.note
                 );
@@ -131,30 +133,13 @@ impl InstallData {
 
             // Add them to the total
             self.url_total.push(index.url);
-            self.version_total.push(
-                index
-                    .pkgindex
-                    .get("version")
-                    .unwrap_or_else(|| {
-                        eprintln!(
-                            "{}: Invaild PKGINDEX format (In repository {})",
-                            color.error, &reponame
-                        );
-                        eprintln!(
-                    "{}: Consider update the mirrorlist/mcospkg or contact the repository author.",
-                    color.note
-                );
-                        exit(1);
-                    })
-                    .to_string(),
-            );
+            for (_, pkg_info) in index.pkgindex.iter() {
+                self.version_total.push(pkg_info.version.clone());
+            }
             self.pkgindex_total.push(index.pkgindex);
             self.baseon_total.push(index.baseon);
         }
-    }
 
-    pub fn step2(&mut self, pkglist: Vec<String>) {
-        let color = Color::new();
         // Stage 2: Check if the package is exist
         self.pkgindex = HashMap::new(); // Initialize
         for (i, _) in self.pkgindex_total.iter().enumerate() {
@@ -165,19 +150,21 @@ impl InstallData {
         for pkg in &pkglist {
             if !self.pkgindex.contains_key(pkg) {
                 println!("{}", color.error);
-                eprintln!(
+                println!(
                     "{}: Package \"{}\" not found in any repositories.",
                     color.error, pkg
                 );
                 exit(2)
             }
         }
+        println!("{}", color.done);
     }
 
-    pub fn step3(&mut self, pkglist: Vec<String>) {
+    pub fn step2(&mut self, pkglist: Vec<String>) {
         let color = Color::new();
+        print!("{}: Checking package dependencies... ", color.info);
 
-        // Stage 3: Check the packages' dependencies
+        // Stage 2: Check the packages' dependencies
         // To check it, we need to use the baseon_total
         // Cause the baseon_total is a vector, we need to use a loop to check it
         // First, we need to check if the package is exist in the baseon_total
@@ -219,12 +206,13 @@ impl InstallData {
                 self.fetch_index.push(dep.clone());
             }
         }
+        println!("{}", color.done);
     }
 
-    pub fn step4(&mut self, reinstall: bool) {
+    pub fn step3(&mut self, reinstall: bool) {
         let color = Color::new();
 
-        // Stage 4: Check if the package is installed in the system
+        // Stage 3: Check if the package is installed in the system
         // NOTE: If the "reinstall" = true, pass this stage
         // First, we need to check if the package is exist in the system
         // If it is exist, we need to ask user if they want to reinstall it
@@ -241,7 +229,7 @@ impl InstallData {
                 .exists()
                 {
                     println!("{}", color.error);
-                    eprintln!(
+                    println!(
                         "{}: Package \"{}\" is installed, cannot reinstall it\nTo reinstall it, use \"{}\"",
                         color.error,
                         pkg,
@@ -263,7 +251,7 @@ impl InstallData {
                 .exists()
                 {
                     println!("{}", color.error);
-                    eprintln!(
+                    println!(
                         "{}: Package \"{}\" is not installed, cannot reinstall it without \"reinstall\" mode.\nTo install it, use \"{}\"",
                         color.error,
                         pkg,
@@ -273,9 +261,10 @@ impl InstallData {
                 }
             }
         }
+        println!("{}", color.done);
     }
 
-    pub fn step5(&mut self, bypass_ask: bool) {
+    pub fn step4(&mut self, bypass_ask: bool) {
         let color = Color::new();
 
         // Stage 4: Download the package
@@ -328,7 +317,6 @@ impl InstallData {
         // So, we need to download the package file and store it in the cache path
         // How to download? use the library we've imported - download.
         // Define something
-        let mut file_index: Vec<String> = Vec::new(); // Record the index, we'll use it in the next stage
         let mut pkg_msgs: Vec<&'static str> = Vec::new(); // This will record the message of downloading
         let mut pkg_version_index = Vec::new(); // This will record the package's version
 
@@ -338,8 +326,7 @@ impl InstallData {
             pkg_msgs.push(pkg_msg);
         }
 
-        for (pkg, msg) in self
-            .fetch_index
+        for (pkg, msg) in self.fetch_index
             .clone()
             .into_iter()
             .zip(pkg_msgs.into_iter())
@@ -364,53 +351,51 @@ impl InstallData {
             // Download the package
             let mut errtime: u32 = 0;
             if let Err(e) = download(pkg_url, pkg_path.clone(), &msg) {
-                eprintln!("{}: {}", color.error, e);
+                println!("{}: {}", color.error, e);
                 errtime += 1;
             }
 
             if errtime > 0 {
-                eprintln!(
+                println!(
                     "{}: Cannot download some packages, installation abort.",
                     color.error
                 );
-                eprintln!(
+                println!(
                     "{}: Please check your network connection or contact the author",
                     color.note
                 );
                 exit(1);
             }
             // And, add it to the file index - use it later
-            file_index.push(pkg_path.clone());
+            self.file_index.push(pkg_path.clone());
             pkg_version_index.push(pkg_version.clone());
         }
     }
 
-    pub fn step6(&mut self) {
+    pub fn step5(&mut self) {
         let color = Color::new();
+        println!("{}: Installing packages... ", color.info);
 
-        // Stage 6: Install the package
+        // Stage 5: Install the package
         // My friend, Xiaokuai, uses C to write the install library.
         // I'll thank him at here :)
         // So, we need to use the C library to install the package
         // First, we need to convert the string to CString
-        println!("{}: Installing packages... ", color.info);
         let mut c_file_index: Vec<CString> = Vec::new(); // Record the index, we'll use it
-
         // Convert the string to CString
         for filepath in &self.file_index {
             let c_pkg = CString::new(filepath.clone()).unwrap();
             c_file_index.push(c_pkg);
         }
-
         // Convert version_total to CString
         let mut c_version_total: Vec<CString> = Vec::new();
         for version in &self.version_total {
             let c_version = CString::new(version.clone()).unwrap();
             c_version_total.push(c_version);
         }
-
         // Then, we need to use the C library to install the package
-        for (pkg, c_version) in c_file_index.iter().zip(c_version_total.iter()) {
+        let version_and_file = c_file_index.iter().zip(c_version_total.iter());
+        for (pkg, c_version) in version_and_file {
             let c_pkg_name = CString::new(
                 pkg.to_str()
                     .unwrap()
@@ -422,13 +407,12 @@ impl InstallData {
                     .unwrap(),
             )
             .unwrap();
-
             let c_pkg_path = CString::new(pkg.to_str().unwrap()).unwrap();
             let res = unsafe {
                 installPackage(c_pkg_path.as_ptr(), c_pkg_name.as_ptr(), c_version.as_ptr())
             };
             if res != 0 {
-                println!("{}: {}", color.error, res);
+                println!("{}: The installation didn't exit normally.", color.error);
             }
         }
     }

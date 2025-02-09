@@ -80,7 +80,7 @@ struct Args {
 }
 
 // =====toml define area=====
-// This defines the toml format (/etc/mcospkg/database/package_info.toml)
+// This defines the toml format (/etc/mcospkg/database/package.toml)
 // This is for uninstall only
 #[derive(Debug, Deserialize, Serialize)]
 struct PkgInfoToml {
@@ -119,25 +119,19 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
     let mut install = install::InstallData::new();
 
     // Stage 1: Get the pkgindex from the repositories
-    print!("{}: Reading package index... ", color.info);
-    install.step1();
-    install.step2(pkglist.clone()); // Stage 2: Check if the package is exist
-    println!("{}", color.done);
+    install.step1(pkglist.clone()); // Stage 2: Check if the package is exist
 
     // Stage 3: Check the packages' dependencies
-    print!("{}: Checking package dependencies... ", color.info);
-    install.step3(pkglist);
-    println!("{}", color.done);
+    install.step2(pkglist);
 
     // Stage 4: Download the package
-    install.step4(reinstall);
+    install.step3(reinstall);
 
     // Stage 5: Install the package
-    install.step5(bypass_ask);
+    install.step4(bypass_ask);
 
     // Stage 6: Install the package
-    println!("{}: Installing package... ", color.info);
-    install.step6();
+    install.step5();
 
     // And, that's complete!
 }
@@ -158,7 +152,7 @@ fn remove(pkglist: Vec<String>, bypass_ask: bool) {
 
     // Stage 1: Explain the package
     // In "Remove" function, the most important is the dependencies.
-    // In "/etc/mcospkg/package_info.toml", in each file's dependencies, defined it.
+    // In "/etc/mcospkg/packages.toml", in each file's dependencies, defined it.
     // For example:
     /* [package_name]
        version = "0.1.1"
@@ -171,19 +165,19 @@ fn remove(pkglist: Vec<String>, bypass_ask: bool) {
        ]
     */
     // Parse it
-    let package_info_raw = std::fs::read_to_string("/etc/mcospkg/database/package_info.toml")
+    let package_raw = std::fs::read_to_string("/etc/mcospkg/database/packages.toml")
         .unwrap_or_else(|err| {
             // If it is not exist, quit
             eprintln!(
-                "{}: Cannot read the package info \"/etc/mcospkg/database/package_info.toml\": {}",
+                "{}: Cannot read the package info \"/etc/mcospkg/database/packages.toml\": {}",
                 color.error, err
             );
             exit(1);
         });
-    let package_info: HashMap<String, PkgInfoToml> = toml::from_str(&package_info_raw)
+    let package: HashMap<String, PkgInfoToml> = toml::from_str(&package_raw)
         .unwrap_or_else(|_| {
             eprintln!(
-                "{}: Invaild format in \"/etc/mcospkg/database/package_info.toml\".",
+                "{}: Invaild format in \"/etc/mcospkg/database/packages.toml\".",
                 color.error
             );
             exit(1);
@@ -191,16 +185,16 @@ fn remove(pkglist: Vec<String>, bypass_ask: bool) {
 
     // Stage 2: Check the dependencies
     // Get its keys
-    let mut package_info_keys: Vec<String> = Vec::new();
-    for (key, _) in package_info.iter() {
-        package_info_keys.push(key.clone());
+    let mut package_keys: Vec<String> = Vec::new();
+    for (key, _) in package.iter() {
+        package_keys.push(key.clone());
     }
 
     // Make sure the specified the package is exist in that file
     // Check the HashMap's key is ok.
     let mut errtime = 0;
     for package in &pkglist {
-        if !package_info_keys.contains(package) {
+        if !package_keys.contains(package) {
             eprintln!(
                 "{}: Package \"{}\" is not installed, so we have no idea (T_T)",
                 color.error, package
@@ -220,7 +214,7 @@ fn remove(pkglist: Vec<String>, bypass_ask: bool) {
     // Read the vector "dependencies"
     let mut dependencies: Vec<String> = Vec::new();
     for pkg in &pkglist {
-        for dep in &package_info[pkg].dependencies {
+        for dep in &package[pkg].dependencies {
             dependencies.push(dep.clone());
         }
     }

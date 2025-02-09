@@ -427,6 +427,9 @@ int installPackage(char* package_path, char* package_name, char* version){
     printf("Package Name:%s\n", package_name); // NOTE: Output Package Name, can delete
     mkdir("/etc/mcospkg/database", 777);
     // 1. Create temp directory
+    tColorBlue();
+    printf("II: ");
+    textAttr_reset();
     printf("Extracting... ");
     fflush(stdout); 
     char directory_template[] = "/tmp/pkgTmpDirXXXXXX";
