@@ -119,4 +119,3 @@ pub fn download(url: String, save: String, msg: &'static str) -> Result<(), Erro
     pb.finish();
     Ok(())
 }
-
