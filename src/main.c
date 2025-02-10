@@ -141,14 +141,25 @@ void installPackageFromSource(char* work_path, char* package_name, char* version
     printf("II: ");
     textAttr_reset(); // reset text attributes
     printf("Start building.\n");
+
     chmod(build_script_file, 777); // Mode 777
+
     int build_command_length = strlen("sudo ") + build_script_file_length + strlen(" > /dev/null") + 1;
     char *build_command = (char*) malloc(build_command_length); // Alloc memory space
     snprintf(build_command, build_command_length, "sudo %s > /dev/null", build_script_file);
-    system(build_command); // run build script
+    int build_status = system(build_command); // run build script
+
+    if(build_status != 0) {
+        tColorRed(); // color:green
+        printf("Build\t--Failed(error %d)\n", build_status);
+        textAttr_reset(); // reset text attributes
+        exit(1);
+    }
+
     tColorGreen(); // color:green
     printf("Build\t--Over\n");
     textAttr_reset(); // reset text attributes
+
     // 4. Clean operation
     cleanOperation(work_path, package_name, version);
     free(build_script_file);
@@ -303,8 +314,8 @@ void run_unhooks(char* package_name) {
         exit(-1);
     }
 
-    if(!exists("/etc/mcospkg/database/packages.toml.new")){
-	tColorRed();
+    if(!exists("/etc/mcospkg/database/packages.toml")){
+        tColorRed();
         printf("Error\nE: ");
         textAttr_reset();
         printf("package not exists!\n");
@@ -329,15 +340,15 @@ void run_unhooks(char* package_name) {
     ssize_t read;
 
     while ((read = getline(&line, &len, fp2)) != -1) {
-	if(!strcmp(prefix_pkgname, line)) {
-	    remove_this_line = 1;
-	}
-	if(!strcmp("\n", line)) {
-	    remove_this_line = 0;
-	}
-	if(!remove_this_line) {
-	    fprintf(fp, line);
-	}
+        if(!strcmp(prefix_pkgname, line)) {
+            remove_this_line = 1;
+        }
+        if(!strcmp("\n", line)) {
+            remove_this_line = 0;
+        }
+        if(!remove_this_line) {
+            fprintf(fp, line);
+        }
     }
 	
     free(line);
@@ -349,10 +360,12 @@ void run_unhooks(char* package_name) {
     system("mv /etc/mcospkg/database/packages.toml.new /etc/mcospkg/database/packages.toml &> /dev/null");
 
     chmod(unhook_file, 777);
-    char* unhook_command = malloc(5 + unhook_file_length + strlen(" > /dev/null 2>&1") + 1);
+
+    int unhook_command_length = 5 + unhook_file_length + strlen(" &> /dev/null") + 1;
+    char* unhook_command = malloc(unhook_command_length);
     strcpy(unhook_command, "sudo ");
     strcat(unhook_command, unhook_file);
-    strcat(unhook_command, " > /dev/null 2>&1"); // redirect output to null(ignore output)
+    strcat(unhook_command, " &> /dev/null"); // redirect output to null(ignore output)
 
     system(unhook_command);
     free(unhook_command);
