@@ -436,7 +436,7 @@ int checkVersion(char* package_name, char* version){
     // 1. Get types
     int index_path_length = strlen("/etc/mcospkg/database/remove_info/packages.toml") + 1;
     char* index_path = (char*) malloc(index_path_length);
-    snprintf(index_path, index_path_length, "/etc/mcospkg/database/remove_info/packages.toml", package_name);
+    snprintf(index_path, index_path_length, "/etc/mcospkg/database/remove_info/packages.toml");
     // 2. Check exists
     if(!exists(index_path)){
         return -1;
