@@ -129,7 +129,7 @@ fn add(reponame: String, repourl: String) {
                 Ok(_) => {  // If yes, print the message
                     println!(
                         "{}: Added repository name \"{}\" to the configuration file.",
-                        "ok".green().bold(),
+                        "OK".green().bold(),
                         reponame,
                     );
                 }
