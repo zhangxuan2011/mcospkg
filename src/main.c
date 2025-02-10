@@ -313,15 +313,6 @@ void run_unhooks(char* package_name) {
         free(unhook_file);
         exit(-1);
     }
-
-    if(!exists("/etc/mcospkg/database/packages.toml")){
-        tColorRed();
-        printf("Error\nE: ");
-        textAttr_reset();
-        printf("package not exists!\n");
-        free(unhook_file);
-        exit(-1);
-    }
 	
     FILE* fp = fopen("/etc/mcospkg/database/packages.toml.new", "w");
     FILE* fp2 = fopen("/etc/mcospkg/database/packages.toml", "r");
