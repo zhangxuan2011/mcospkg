@@ -9,6 +9,7 @@
 // First, we need to import some modules:
 use clap::Parser; // To parse argument(info-type)
 use colored::Colorize; // To show colorful text(in var "error")
+use mcospkg::Color;
 
 // And, set up the parser information:
 #[derive(Parser, Debug)]
@@ -25,7 +26,7 @@ struct Args {
 // Fourth, let's do it!
 fn main() {
     // Define the colorful text
-    let error = "error".red().bold();
+    let color = Color::new();
 
     // Parse args
     let args = Args::parse();
@@ -37,7 +38,7 @@ fn main() {
         "repo-site" => println!("{}",repo_site()),
         "usage" => println!(""),
         "introduce" => println!("{}", introduce()),
-        &_ => println!("{}: unknown options: {}\n{}: Supports arguments are: os-license, repo-site, all", error, args.info_type, "tip".bold().green()),
+        &_ => println!("{}: unknown options: {}\n{}: Supports arguments are: os-license, repo-site, all", color.error, args.info_type, "tip".bold().green()),
     }
 }
 

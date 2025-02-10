@@ -1,46 +1,62 @@
-// First, import local modules
-pub mod library {
-    pub mod cfg;
-    pub mod download;
-}
-
-// And import some modules we need
-use crate::library::cfg::readcfg;
-use crate::library::download::download;
-use clap::Parser;
+// First, import some modules we need
+use clap::{Parser, Subcommand};
 use colored::Colorize;
+use mcospkg::{download, readcfg, Color};
 use std::process::{exit, Command};
+use std::io::Write;
 
 // And then we define the arguments
 #[derive(Parser, Debug)]
 #[command(name = "mcospkg-mirror")]
 #[command(about = "The mirror list manager of mcospkg")]
 #[command(version = "0.1.1-debug")]
-
 struct Args {
-    #[arg(required = true, help = "update/add/delete are the avainable option")]
-    option: String,
+    #[command(subcommand)]
+    option: Options,
+}
+
+#[derive(Subcommand, Debug)]
+enum Options {
+    #[command(about = "Update the mirror list")]
+    Update,
+
+    #[command(about = "Add a mirror")]
+    Add {
+        #[arg(help = "The name of the repository")]
+        reponame: String,
+
+        #[arg(help = "The url of the repository")]
+        repourl: String,
+    },
+
+    #[command(about = "Delete a mirror")]
+    Delete {
+        #[arg(help = "The name of the repository")]
+        reponame: String,
+    },
 }
 
 fn main() {
-    let error = "error".red().bold();
     let args = Args::parse();
-    match args.option.as_str() {
-        "update" => update(),
-        "add" => add(),
-        "delete" => delete(),
-        _ => println!("{}: unknown option: {}", error, args.option),
+    match args.option {
+        Options::Update => update(),
+        Options::Add { reponame, repourl } => {
+            add(reponame, repourl);
+        },
+        Options::Delete { reponame } => {
+            delete(reponame);
+        },
     }
 }
 
 fn update() {
-    let error = "error".red().bold();
+    let color = Color::new();
 
     // First, we read the configuration file
     let repoindex: Vec<(String, String)>;
     match readcfg() {
         Err(e) => {
-            println!("{}: {}", error, e);
+            eprintln!("{}: {}", color.error, e);
             println!(
                 "{}: Consider using this format to write to that file:\n\t{}",
                 "note".bold().green(),
@@ -64,7 +80,7 @@ fn update() {
     // Second, create the dir if not exist
     // Dir we store database: /etc/mcospkg/database/remote
     if !std::path::Path::new("/etc/mcospkg/database/remote").exists() {
-        println!("Creating directory /etc/mcospkg/database/remote...");
+        println!("{}: Creating directory /etc/mcospkg/database/remote...", color.info);
         match Command::new("mkdir")
             .arg("-p")
             .arg("/etc/mcospkg/database/remote")
@@ -72,25 +88,54 @@ fn update() {
         {
             Ok(_) => {}
             Err(e) => {
-                println!("{}: {}", error, e);
+                eprintln!("{}: {}", color.error, e);
                 exit(2);
             }
         }
     }
 
     // Third, download the file
-    println!("Updating index file...");
+    println!("{}: Updating index file...", color.info);
     for ((reponame, repourl), msg) in repoindex.into_iter().zip(repo_msgs.into_iter()) {
         if let Err(errmsg) = download(
             format!("{}/PKGINDEX.json", repourl),
             format!("/etc/mcospkg/database/remote/{}.json", reponame),
             msg,
         ) {
-            println!("{}: {}", error, errmsg);
+            eprintln!("{}: {}", color.error, errmsg);
         }
     }
 }
 
-fn add() {}
+fn add(reponame: String, repourl: String) {
+    let color = Color::new();
 
-fn delete() {}
+    // First, open the repo file
+    let repofile = std::fs::OpenOptions::new()
+        .write(true)
+        .append(true)
+        .open("/etc/mcospkg/repo.conf");
+    match repofile {    // See if the file is opened
+        Err(e) => { // If not, print the color.error and exit
+            eprintln!("{}: {}", color.error, e);
+            exit(2);
+        },
+        Ok(mut repofile) => {
+            match repofile.write_all(format!("{} = {}\n", reponame, repourl).as_bytes()) {    // Write the file
+                Err(e) => {     // If not, print the color.error and exit
+                    eprintln!("{}: {}", color.error, e);
+                    exit(2);
+                },
+                Ok(_) => {  // If yes, print the message
+                    println!(
+                        "{}: Added repository name \"{}\" to the configuration file.",
+                        "ok".green().bold(),
+                        reponame,
+                    );
+                }
+            }
+        }
+    }
+}
+
+fn delete(_reponame: String) {}
