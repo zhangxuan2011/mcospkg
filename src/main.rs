@@ -70,8 +70,6 @@ struct Args {
     bypass_ask: bool,
 }
 
-
-
 // ========functions define area==========
 fn main() {
     let color = Color::new();
