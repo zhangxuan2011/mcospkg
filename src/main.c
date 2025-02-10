@@ -140,7 +140,7 @@ void installPackageFromSource(char* work_path, char* package_name, char* version
     tColorBlue(); // color:blue
     printf("II: ");
     textAttr_reset(); // reset text attributes
-    printf("Start building.\n");
+    printf("Building package (This may take some time)...\n");
 
     chmod(build_script_file, 777); // Mode 777
 
@@ -375,7 +375,7 @@ void removePackage(char* package_name) {
     tColorBlue();
     printf("I: ");
     textAttr_reset();
-	printf("Package Name:%s\n", package_name); // NOTE: Output Package Name, can delete
+	printf("Package Name: %s\n", package_name); // NOTE: Output Package Name, can delete
     if (exists(index_path)) { // Directly
         tColorBlue();
         printf("II: ");
@@ -472,7 +472,7 @@ int installPackage(char* package_path, char* package_name, char* version){
     tColorBlue();
     printf("I: ");
     textAttr_reset();
-    printf("Package Name:%s\n", package_name); // NOTE: Output Package Name, can delete
+    printf("Package Name: %s\n", package_name); // NOTE: Output Package Name, can delete
     mkdir("/etc/mcospkg/database", 777);
     // 1. Create temp directory
     tColorBlue();

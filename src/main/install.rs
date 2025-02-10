@@ -1,3 +1,34 @@
+/// ## Information
+/// Position: src/main/install.rs
+/// Usage: The install library of src/main.rs
+/// Date: 2025-02-10
+/// Author: Xuan Zhang <zx20110412@outlook.com>
+///
+/// ## Description
+/// This file is the library of src/main.rs.
+/// It contains the struct `InstallData` and its methods.
+///
+///
+/// ## Example
+/// ```rust
+/// mod main {
+///     pub mod install;
+/// }
+/// use main::install;                              // Import the struct
+/// // Main function
+/// let mut install_data = install::InstallData::new();      // Create a new InstallData
+/// install_data.step1_explain_pkg(pkglist);        // Explain the package (step 1)
+/// install_data.step2_check_deps(pkglist);         // Check package dependencied (step 2)
+/// install_data.step3_check_installed();           // Check if package has been installed (step 3)
+/// install_data.step4_download();                  // Download package (step 4)
+/// install_data.step5_install();                   // Install package (step 5)
+/// ```
+///
+/// ## PS
+/// The usage of this file is in src/main.rs.
+/// Line 111-126 is the usage of this file.
+/// (NOTE: The `src/main.rs` maybe update so that the lines may change.)
+// Import some essential modules
 use colored::Colorize;
 use dialoguer::Input;
 use libc::{c_char, c_int};
@@ -39,10 +70,10 @@ pub struct InstallData {
     url_total: Vec<String>,           // The repository url
     pkgindex_total: Vec<HashMap<String, PkgInfo>>, // The package index
     baseon_total: Vec<HashMap<String, Vec<String>>>, // The package baseon
-    pkg_version_index: Vec<String>,       // The package version
+    pkg_version_index: Vec<String>,   // The package version
     pkgindex: HashMap<String, PkgInfo>, // The package index
-    fetch_index: Vec<String>,           // The package to fetch
-    file_index: Vec<String>,            // The package to fetch
+    fetch_index: Vec<String>,         // The package to fetch
+    file_index: Vec<String>,          // The package to fetch
 }
 
 // ==========Extern area==========
@@ -63,7 +94,7 @@ impl InstallData {
             pkgindex_total: vec![],
             baseon_total: vec![],
             pkg_version_index: vec![],
-            pkgindex: std::collections::HashMap::new(),
+            pkgindex: HashMap::new(),
             fetch_index: vec![],
             file_index: vec![],
         }
@@ -298,7 +329,10 @@ impl InstallData {
         // Stage 4: Download the package
         // First, get package's version
         // Then, we need to ask user that if they want to install it
-        println!("{}: The following packages is being (re)installed:", color.info);
+        println!(
+            "{}: The following packages is being (re)installed:",
+            color.info
+        );
         let len = self.fetch_index.len();
         for (i, pkg) in self.fetch_index.clone().into_iter().enumerate() {
             let pkg_version = self.pkgindex.get(&pkg).unwrap().version.clone();

@@ -24,11 +24,13 @@ pub struct PkgInfoToml {
 // In most codes, we usually meet the colorful message. So
 // we moved them in a struct.
 pub struct Color {
-    pub error: ColoredString,
-    pub tip: ColoredString,
-    pub info: ColoredString,
-    pub done: ColoredString,
-    pub note: ColoredString,
+    /// The color of the message
+    /// This uses in lots of file, so we merged them here.
+    pub error: ColoredString,   // The error message
+    pub tip: ColoredString,     // The tip message
+    pub info: ColoredString,    // The info message
+    pub done: ColoredString,    // The done message
+    pub note: ColoredString,    // The note message
 }
 
 // Implement this struct
