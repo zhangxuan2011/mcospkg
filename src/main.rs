@@ -48,7 +48,7 @@ use std::process::exit;
 #[derive(Parser, Debug)]
 #[command(name = "mcospkg")]
 #[command(about = "A linux package-manager made for MinecraftOS (Main program)")]
-#[command(version = "0.1.1-debug")]
+#[command(version = "0.9.0")]
 
 // Define argument lists
 struct Args {
