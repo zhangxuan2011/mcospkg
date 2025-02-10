@@ -10,6 +10,7 @@ use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::{Error, ErrorKind, Read, Write};
 use std::process::exit;
+use std::path::Path;
 
 // =====toml define area=====
 // This defines the toml format (/etc/mcospkg/database/package.toml)
@@ -134,13 +135,20 @@ pub fn download(url: String, save: String, msg: &'static str) -> Result<(), Erro
 pub fn get_installed_package_info() -> HashMap<String, PkgInfoToml> {
     let color = Color::new();
     let package_raw = std::fs::read_to_string("/etc/mcospkg/database/packages.toml")
-        .unwrap_or_else(|err| {
-            // If it is not exist, quit
-            eprintln!(
-                "{}: Cannot read the package info \"/etc/mcospkg/database/packages.toml\": {}",
-                color.error, err
-            );
-            exit(1);
+        .unwrap_or_else(|_| {
+            let file_path = Path::new("/etc/mcospkg/database/packages.toml");
+
+            let mut _file = match File::create(&file_path) {
+                Err(why) => {
+                    println!("{}: couldn't create /etc/mcospkg/database/packages.toml: ({:?})",
+                    color.error,
+                    why);
+                }
+                Ok(_) => return Default::default(),
+            };
+
+            let return_value = "[null]\nversion=0\ndependencies = []\n\n".to_string();
+            return_value
         });
     let package: HashMap<String, PkgInfoToml> = toml::from_str(&package_raw).unwrap_or_else(|_| {
         eprintln!(
