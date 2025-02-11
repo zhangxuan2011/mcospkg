@@ -432,7 +432,7 @@ int checkVersion(char* package_name, char* version){
     // 1. Get types
     int index_path_length = strlen("/etc/mcospkg/database/remove_info/packages.toml") + 1;
     char* index_path = (char*) malloc(index_path_length);
-    snprintf(index_path, index_path_length, "/etc/mcospkg/database/remove_info/%s.toml", package_name);
+    snprintf(index_path, index_path_length, "/etc/mcospkg/database/remove_info/packages.toml");
     // 2. Check exists
     if(!exists(index_path)){
         return -1;
@@ -450,9 +450,9 @@ int checkVersion(char* package_name, char* version){
         if(strcmp(line, ifpkgname) == 0){
             while((read = getline(&line, &len, fp))!= -1){
                 if(strncmp(line, "version = ", 10) == 0){
-                    char* version_str = (char*) malloc(strlen(line) - 10);
-                    strcpy(version_str, line + 10);
-                    version_str[strcspn(version_str, "\n")] = '\0';
+                    char* version_str = (char*) malloc(strlen(line) - 11);
+                    strcpy(version_str, line + 11);
+                    version_str[strcspn(version_str, "\"")] = '\0';
                     return checkVersionNumber(version_str, version);
                     break;
                 }
