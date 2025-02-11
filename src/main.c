@@ -32,9 +32,9 @@ int checkVersion(char* package_name, char* version);
 
 int copy_file(char* src, char* target) { // Copy files
 
-    int copy_file_length = 13 + strlen(src) + strlen(target) + 1;
+    int copy_file_length = 17 + strlen(src) + strlen(target) + 1;
     char *copy_file = (char*) malloc(copy_file_length);
-    snprintf(copy_file, copy_file_length, "sudo cp \"%s\" \"%s\"", src, target);
+    snprintf(copy_file, copy_file_length, "sudo cp -f \"%s\" \"%s\"", src, target);
     return system(copy_file);
 }
 
@@ -294,26 +294,7 @@ int installPackageDirectly(char* work_path, char* package_name, char* version){
     return 0;
 }
 
-void run_unhooks(char* package_name) {
-    tColorBlue();
-    printf("II: ");
-    textAttr_reset();
-	printf("Running uninstall script...\t");
-	fflush(stdout);
-	
-    int unhook_file_length = strlen("/etc/mcospkg/database/remove_info/-UNHOOKS") + strlen(package_name) + 1;
-    char* unhook_file = (char*) malloc(unhook_file_length);
-    snprintf(unhook_file, unhook_file_length, "/etc/mcospkg/database/remove_info/%s-UNHOOKS", package_name);
-	
-    if (!exists(unhook_file)) { 
-        tColorRed();
-        printf("Error\nE: ");
-        textAttr_reset();
-        printf("package not exists!\n");
-        free(unhook_file);
-        exit(-1);
-    }
-	
+void removeRegisterInfo(char* package_name) {
     FILE* fp = fopen("/etc/mcospkg/database/packages.toml.new", "w");
     FILE* fp2 = fopen("/etc/mcospkg/database/packages.toml", "r");
 
@@ -346,6 +327,29 @@ void run_unhooks(char* package_name) {
 
     fclose(fp);
     fclose(fp2);
+}
+
+void run_unhooks(char* package_name) {
+    tColorBlue();
+    printf("II: ");
+    textAttr_reset();
+	printf("Running uninstall script...\t");
+	fflush(stdout);
+	
+    int unhook_file_length = strlen("/etc/mcospkg/database/remove_info/-UNHOOKS") + strlen(package_name) + 1;
+    char* unhook_file = (char*) malloc(unhook_file_length);
+    snprintf(unhook_file, unhook_file_length, "/etc/mcospkg/database/remove_info/%s-UNHOOKS", package_name);
+	
+    if (!exists(unhook_file)) { 
+        tColorRed();
+        printf("Error\nE: ");
+        textAttr_reset();
+        printf("package not exists!\n");
+        free(unhook_file);
+        exit(-1);
+    }
+	
+    removeRegisterInfo(package_name);
 
     system("rm -rf /etc/mcospkg/database/packages.toml &> /dev/null");
     system("mv /etc/mcospkg/database/packages.toml.new /etc/mcospkg/database/packages.toml &> /dev/null");
@@ -515,14 +519,21 @@ int installPackage(char* package_path, char* package_name, char* version){
         rm_file(temp_directory_name);
         exit(-1);
     }
-    if(checkVersion(package_name, version) >= 0){
+    if(checkVersion(package_name, version) == 0){
         releaseObject(hook_file, build_script_file);
-        tColorRed();
-        printf("E: ");
+        tColorYellow();
+        printf("W: ");
         textAttr_reset();
-        printf("Package version is same! skiped.\n");
-        rm_file(temp_directory_name);
-        exit(-1);
+        printf("Package version is same!Continued? [y/N] ");
+	char result = (char) getchar();
+	if(result == 'y' || result == 'Y') {
+	    removePackage(package_name);
+	}
+	else {
+	    printf("Skipped.");
+	    rm_file(temp_directory_name);
+	    exit(1);
+	}
     }
     if(checkVersion(package_name, version) == 2){
         releaseObject(hook_file, build_script_file);
@@ -534,7 +545,7 @@ int installPackage(char* package_path, char* package_name, char* version){
         exit(-1);
     }
     if(checkVersion(package_name, version) == 1){
-        removePackage(package_name);
+        removeRegisterInfo(package_name);
     }
     if(!exists(build_script_file)){
         installPackageDirectly(temp_directory_name, package_name, version);
