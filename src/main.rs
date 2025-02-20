@@ -48,7 +48,7 @@ use std::process::exit;
 #[derive(Parser, Debug)]
 #[command(name = "mcospkg")]
 #[command(about = "A linux package-manager made for MinecraftOS (Main program)")]
-#[command(version = "0.9.0")]
+#[command(version = "0.1.1-debug")]
 
 // Define argument lists
 struct Args {
@@ -56,7 +56,7 @@ struct Args {
         required = true,
         help = "Supports: install/remove/remove-all/update/reinstall"
     )]
-    option: String,
+    operation: String,
 
     #[arg(required = false)]
     packages: Vec<String>,
@@ -74,11 +74,11 @@ struct Args {
 fn main() {
     let color = Color::new();
     let args = Args::parse();
-    match args.option.as_str() {
+    match args.operation.as_str() {
         "install" => install(args.packages, args.bypass_ask, false),
         "remove" => remove(args.packages, args.bypass_ask),
         "reinstall" => install(args.packages, args.bypass_ask, true),
-        _ => println!("{}: unknown option: {}", color.error, args.option),
+        _ => println!("{}: unknown operation: {}", color.error, args.operation),
     };
 }
 

@@ -9,14 +9,14 @@ use std::io::Write;
 #[derive(Parser, Debug)]
 #[command(name = "mcospkg-mirror")]
 #[command(about = "The mirror list manager of mcospkg")]
-#[command(version = "0.9.0")]
+#[command(version = "0.1.1-debug")]
 struct Args {
     #[command(subcommand)]
-    option: Options,
+    operation: Operations,
 }
 
 #[derive(Subcommand, Debug)]
-enum Options {
+enum Operations {
     #[command(about = "Update the mirror list")]
     Update,
 
@@ -38,12 +38,12 @@ enum Options {
 
 fn main() {
     let args = Args::parse();
-    match args.option {
-        Options::Update => update(),
-        Options::Add { reponame, repourl } => {
+    match args.operation {
+        Operations::Update => update(),
+        Operations::Add { reponame, repourl } => {
             add(reponame, repourl);
         },
-        Options::Delete { reponame } => {
+        Operations::Delete { reponame } => {
             delete(reponame);
         },
     }
@@ -129,7 +129,7 @@ fn add(reponame: String, repourl: String) {
                 Ok(_) => {  // If yes, print the message
                     println!(
                         "{}: Added repository name \"{}\" to the configuration file.",
-                        "OK".green().bold(),
+                        "ok".green().bold(),
                         reponame,
                     );
                 }
