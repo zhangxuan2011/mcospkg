@@ -78,7 +78,7 @@ pub struct InstallData {
 }
 
 // ==========Extern area==========
-extern "C" {
+unsafe extern "C" {
     fn installPackage(
         package_path: *const c_char,
         package_name: *const c_char,

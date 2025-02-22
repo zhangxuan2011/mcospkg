@@ -39,7 +39,7 @@ use std::ffi::CString;
 use std::process::exit;
 
 // Extern C Libs(libpkgmgr.a)
-extern "C" {
+unsafe extern "C" {
     fn removePackage(package_name: *const c_char);
 }
 
