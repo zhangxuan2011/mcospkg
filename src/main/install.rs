@@ -288,9 +288,9 @@ impl InstallData {
 
         if errtime > 0 {
             println!(
-                "{}: To reinstall it, use \"{}\"",
+                "{}: To reinstall it, please append an argument \"{}\" after the command.",
                 color.note,
-                "mcospkg reinstall <package>".cyan()
+                "-r".cyan()
             );
             exit(1);
         }
@@ -304,7 +304,7 @@ impl InstallData {
         // First, get package's version
         // Then, we need to ask user that if they want to install it
         println!(
-            "{}: The following packages is being (re)installed:",
+            "{}: The following packages is being installing:",
             color.info
         );
         let len = self.fetch_index.len();
