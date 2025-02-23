@@ -365,7 +365,7 @@ void run_unhooks(char* package_name) {
         textAttr_reset();
         printf("package not exists!\n");
         free(unhook_file);
-        xkexit(work_path, -1);
+        exit(-1);
     }
 	
     removeRegisterInfo(package_name);
