@@ -31,7 +31,7 @@
 int checkVersion(char* package_name, char* version);
 int rm_file(char* dir_name);
 
-int xkexit(work_path, char* tmpdir, int errorlevel) {
+int xkexit(char* tmpdir, int errorlevel) {
 	rm_file(tmpdir);
 	exit(errorlevel);
 	return 0;
