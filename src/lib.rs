@@ -31,6 +31,8 @@ pub struct Color {
     pub info: ColoredString,    // The info message
     pub done: ColoredString,    // The done message
     pub note: ColoredString,    // The note message
+    pub ok: ColoredString,      // The OK message
+    pub no: ColoredString,      // The No message
 }
 
 // Implement this struct
@@ -41,12 +43,16 @@ impl Color {
         let info = "info".blue().bold();
         let done = "Done".green().bold();
         let note = "note".yellow().bold();
+        let ok = "OK".green().bold();
+        let no = "No".red().bold();
         Self {
             error,
             tip,
             info,
             done,
             note,
+            ok,
+            no,
         }
     }
 }
@@ -107,7 +113,7 @@ pub fn download(url: String, save: String, msg: &'static str) -> Result<(), Erro
     let pb = ProgressBar::new(resp.content_length().unwrap_or(0));
     pb.set_style(
         ProgressStyle::default_bar()
-            .template("{msg} {eta_precise} [{bar:40.cyan/blue}] {bytes}/{total_bytes} {binary_bytes_per_sec}\n")
+            .template("{msg} {eta_precise} [{bar:40.green/blue}] {bytes}/{total_bytes} {binary_bytes_per_sec}\n")
             .unwrap()
             .progress_chars("##-"),
     );

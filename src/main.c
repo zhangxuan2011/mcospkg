@@ -536,7 +536,7 @@ int installPackage(char* package_path, char* package_name, char* version){
         tColorYellow();
         printf("W: ");
         textAttr_reset();
-        printf("Package version is same!Continued? [y/N] ");
+        printf("Package version is same! Continue? [y/N] ");
 	char result = (char) getchar();
 	if(result == 'y' || result == 'Y') {
 	    removePackage(package_name);
