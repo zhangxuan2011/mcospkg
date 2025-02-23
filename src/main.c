@@ -30,6 +30,18 @@
 
 int checkVersion(char* package_name, char* version);
 
+int chmod3(char* filename, int mode) {
+    int arglen = strlen("sudo chmod 777 ") + strlen(filename) + 1;
+
+    char* arg = (char*) malloc(arglen);
+
+    snprintf(arg, "sudo chmod 777 %s", filename);
+
+    int result = system(arg);
+
+    return result;
+}
+
 int copy_file(char* src, char* target) { // Copy files
 
     int copy_file_length = 17 + strlen(src) + strlen(target) + 1;
