@@ -441,10 +441,10 @@ impl InstallData {
             .zip(self.fetch_index.clone().into_iter())
             .clone()
         {
+            print!("{} \"{}\": ", "Package".cyan().bold(), pkg.clone());
             // First, get the file's sha256 intergrity.
             // Get the file name
             let file = self.pkgindex.get(&pkg).unwrap().filename.clone();
-            print!("package \"{}\": ", pkg.cyan().bold().clone());
             // Get the full path
             let full_path = format!("/var/cache/mcospkg/{}", file);
             // Then calculate its sums
