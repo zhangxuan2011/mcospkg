@@ -38,11 +38,11 @@ int xkexit(work_path, char* tmpdir, int errorlevel) {
 }
 
 int chmod3(char* filename, int mode) {
-    int arglen = strlen("sudo chmod 777 ") + strlen(filename) + 1;
+    int arglen = strlen("sudo chmod +x ") + strlen(filename) + 1;
 
     char* arg = (char*) malloc(arglen);
 
-    sprintf(arg, "sudo chmod 777 %s", filename);
+    sprintf(arg, "sudo chmod +x %s", filename);
 
     int result = system(arg);
 
