@@ -38,7 +38,7 @@ mod main {
 }
 use main::install;
 use main::remove;
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use mcospkg::Color;
 use std::process::exit;
 
@@ -52,33 +52,66 @@ use std::process::exit;
 
 // Define argument lists
 struct Args {
-    #[arg(
-        required = true,
-        help = "Supports: install/remove/remove-all/update/reinstall"
-    )]
-    option: String,
+    #[command(subcommand)]
+    operation: Operations,
+}
 
-    #[arg(required = false)]
-    packages: Vec<String>,
+// Define Subcommand
+#[derive(Subcommand, Debug)]
+enum Operations {
+    #[command(about = "Install the package(s).")]
+    Install {
+        // Get packages
+        #[arg(
+            required = true,
+            help = "The package(s) you want to install"
+        )]
+        packages: Vec<String>,
+        
+        // And should we bypass asking
+        #[arg(
+            long = "bypass",
+            short = 'y',
+            default_value_t = false,
+            help = "Specify it will not ask ANY questions"            )]
+        bypass_ask: bool,
 
-    #[arg(
-        long = "bypass",
-        short = 'y',
-        default_value_t = false,
-        help = "Specify it will not ask ANY questions"
-    )]
-    bypass_ask: bool,
+        // And should we reinstall it
+        #[arg(
+            long = "reinstall",
+            short = 'r',
+            default_value_t = false,
+            help = "Specify it will (re)install package"
+        )]
+        reinstall: bool,
+    },
+
+    // And remove
+    #[command(about = "Remove the package(s).")]
+    Remove {
+        // Get packages
+        #[arg(
+            required = true,
+            help = "The package(s) you want to remove"
+        )]
+        packages: Vec<String>,
+
+        // And should we bypass asking
+        #[arg(
+            long = "bypass",
+            short = 'y',
+            default_value_t = false,
+            help = "Specify it will not ask ANY questions"            )]
+        bypass_ask: bool,
+    }
 }
 
 // ========functions define area==========
 fn main() {
-    let color = Color::new();
     let args = Args::parse();
-    match args.option.as_str() {
-        "install" => install(args.packages, args.bypass_ask, false),
-        "remove" => remove(args.packages, args.bypass_ask),
-        "reinstall" => install(args.packages, args.bypass_ask, true),
-        _ => println!("{}: unknown option: {}", color.error, args.option),
+    match args.operation {
+        Operations::Install {packages, bypass_ask, reinstall} => install(packages, bypass_ask, reinstall),
+        Operations::Remove {packages, bypass_ask} => remove(packages, bypass_ask),
     };
 }
 
@@ -89,12 +122,6 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
     // Tell user is this mode is "reinstall"
     if reinstall {
         println!("{}: Reinstall mode has been enabled.", color.note);
-    }
-
-    // Next, check if pkgindex is empty
-    if pkglist.is_empty() {
-        println!("{}: No package(s) specified.", color.error);
-        exit(2);
     }
 
     // Init the InstallData struct

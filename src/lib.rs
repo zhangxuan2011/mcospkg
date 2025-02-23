@@ -55,7 +55,7 @@ impl Color {
 /// The HashMap's key is the repository name, and the value is the repository URL
 /// If the configuration file is not found, it will return an error
 /// If the configuration file is not in the correct format, it will return an error, too.
-/// The format is: [reponame] = [repourl]
+/// The format is: `[reponame] = [repourl]`
 pub fn readcfg() -> Result<HashMap<String, String>, Error> {
     // First, read the configuration
     let mut repoconf_raw = fs::read_to_string("/etc/mcospkg/repo.conf").map_err(|_| {

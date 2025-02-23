@@ -32,11 +32,12 @@
 use colored::Colorize;
 use dialoguer::Input;
 use libc::{c_char, c_int};
-use mcospkg::{download, get_installed_package_info, readcfg, Color};
+use mcospkg::{download, readcfg, Color};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::fmt;
+use std::fs;
 use std::path::Path;
 use std::process::exit;
 
@@ -77,7 +78,7 @@ pub struct InstallData {
 }
 
 // ==========Extern area==========
-extern "C" {
+unsafe extern "C" {
     fn installPackage(
         package_path: *const c_char,
         package_name: *const c_char,
@@ -249,77 +250,50 @@ impl InstallData {
         // If it is exist, we need to ask user if they want to reinstall it
         // If it is not exist, we need to ask user if they want to install it
 
-        // First, parse it
-        let installed_packages = get_installed_package_info();
+        // First, read it
+        let binding = fs::read_to_string("/etc/mcospkg/database/packages.toml")
+            .unwrap_or_else(|err| {
+                println!("{}", color.error);
+                println!(
+                    "{}: Cannot read \"/etc/mcospkg/database/packages.toml\": {}",
+                    color.error, err
+                );
+                exit(1);
+            })
+            .to_string();
+        let installed_packages = binding.split("\n").collect::<Vec<&str>>();
 
         // Then check
         let mut errtime = 0;
-        for (installed_pkg, pkglist_pkg) in installed_packages.iter().zip(pkglist.iter()) {
-            if installed_pkg.0 == pkglist_pkg {
-                if reinstall {
-                    continue;
-                } else {
-                    println!("{}", color.error);
-                    println!(
-                        "{}: Package \"{}\" is installed, cannot reinstall it.",
-                        color.error, pkglist_pkg,
-                    );
-                    errtime += 1;
-                }
+        for pkg in &pkglist {
+            let check_pkg = format!("[{}]", &pkg);
+            if !reinstall {
+                for installed_pkg in installed_packages.clone() {
+                    if installed_pkg == check_pkg {
+                        if errtime == 0 {
+                            println!("{}", color.error);
+                        }
+                        println!(
+                            "{}: Package \"{}\" has installed, cannot reinstall it without \"reinstall\" mode",
+                            color.error,
+                            pkg,
+                        );
+                        errtime += 1;
+                    } else {
+                        continue;
+                    }
+                }   
             }
         }
 
         if errtime > 0 {
             println!(
-                "{}: To reinstall it, use \"{}\"",
+                "{}: To reinstall it, please append an argument \"{}\" after the command.",
                 color.note,
-                "mcospkg reinstall <package>".cyan()
+                "-r".cyan()
             );
             exit(1);
         }
-
-        // if !reinstall {
-        //     print!("{}: Checking if the package is installed... ", color.info);
-        //     for pkg in &self.fetch_index {
-        //         if Path::new(&format!(
-        //             "/etc/mcospkg/database/remove_color.info/{}-UNHOOKS",
-        //             pkg
-        //         ))
-        //         .exists()
-        //         {
-        //             println!("{}", color.error);
-        // println!(
-        //     "{}: Package \"{}\" is installed, cannot reinstall it\nTo reinstall it, use \"{}\"",
-        //     color.error,
-        //     pkg,
-        //     "mcospkg reinstall <package>".cyan()
-        // );
-        //             exit(1)
-        //         }
-        //     }
-        // }
-
-        // // If the "reinstall" = true, check is it NOT installed
-        // if reinstall {
-        //     print!("{}: Checking if the package is installed... ", color.info);
-        //     for pkg in &self.fetch_index {
-        //         if !Path::new(&format!(
-        //             "/etc/mcospkg/database/remove_color.info/{}-UNHOOKS",
-        //             pkg
-        //         ))
-        //         .exists()
-        //         {
-        //             println!("{}", color.error);
-        //             println!(
-        //                 "{}: Package \"{}\" is not installed, cannot reinstall it without \"reinstall\" mode.\nTo install it, use \"{}\"",
-        //                 color.error,
-        //                 pkg,
-        //                 "mcospkg install <package>".cyan()
-        //             );
-        //             exit(1)
-        //         }
-        //     }
-        // }
         println!("{}", color.done);
     }
 
@@ -330,7 +304,7 @@ impl InstallData {
         // First, get package's version
         // Then, we need to ask user that if they want to install it
         println!(
-            "{}: The following packages is being (re)installed:",
+            "{}: The following packages is being installing:",
             color.info
         );
         let len = self.fetch_index.len();

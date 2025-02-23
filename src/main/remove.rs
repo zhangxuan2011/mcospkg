@@ -39,7 +39,7 @@ use std::ffi::CString;
 use std::process::exit;
 
 // Extern C Libs(libpkgmgr.a)
-extern "C" {
+unsafe extern "C" {
     fn removePackage(package_name: *const c_char);
 }
 
@@ -91,7 +91,7 @@ impl RemoveData {
         let mut errtime = 0;
         for package in &pkglist {
             if !package_keys.contains(package) {
-                eprintln!(
+                println!(
                     "{}: Package \"{}\" is not installed, so we have no idea (T_T)",
                     color.error, package
                 );
@@ -100,7 +100,7 @@ impl RemoveData {
         }
 
         if errtime > 0 {
-            eprintln!("{}: {} errors occurred, terminated.", color.error, errtime);
+            println!("{}: {} errors occurred, terminated.", color.error, errtime);
             exit(1)
         }
 
