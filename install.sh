@@ -5,7 +5,7 @@ PREFIX="/"
 
 # Check is build file exist
 if [ ! -d target/release ]; then
-    echo -e "Error: Build dir 'target/release' not found! Quiting..."
+    echo "Error: Build dir 'target/release' not found! Quiting..."
     exit 1
 fi
 
@@ -50,9 +50,9 @@ fi
 
 # Start to copy
 echo "=====OUTPUT====="
-mkdir -p $PREFIX/bin
-cp -rv target/intergrated/bin/* $PREFIX/bin
-cp -rv target/intergrated/* $PREFIX
+sudo mkdir -p $PREFIX/bin
+sudo cp -rv target/intergrated/bin/* $PREFIX/bin
+sudo cp -rv target/intergrated/* $PREFIX
 echo "=====END OF OUTPUT====="
 echo "Installation completed."
 exit 0

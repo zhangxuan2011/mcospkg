@@ -114,6 +114,7 @@ impl InstallData {
         // First, load configuration and get its HashMap
         match readcfg() {
             Err(e) => {
+                println!("{}", color.error);
                 println!("{}: {}", color.error, e);
                 println!(
                     "{}: Consider using this format to write to that file:\n\t{}",
@@ -134,6 +135,9 @@ impl InstallData {
             let repopath = format!("/etc/mcospkg/database/remote/{}.json", reponame);
             // If index not exist, just quit
             if !Path::new(&repopath).exists() {
+                if errtime == 0 {
+                    println!("{}", color.error);
+                }
                 println!(
                     "{}: Repository index \"{}\" not found",
                     color.error, reponame
