@@ -47,6 +47,6 @@ In it, you can specify the building jobs (In this example, Jobs = 8)
 
 Run the `install.sh` we've given:
 
-`sudo ./install.sh`
+`./install.sh`
 
 This will install the mcospkg to `/` (Defined in `PREFIX`)

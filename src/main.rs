@@ -48,7 +48,7 @@ use std::process::exit;
 #[derive(Parser, Debug)]
 #[command(name = "mcospkg")]
 #[command(about = "A linux package-manager made for MinecraftOS (Main program)")]
-#[command(version = "0.1.1-debug")]
+#[command(version = "0.9.1")]
 
 // Define argument lists
 struct Args {
@@ -130,17 +130,20 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
     // Stage 1: Get the pkgindex from the repositories
     install_data.step1_explain_pkg(pkglist.clone()); // Stage 2: Check if the package is exist
 
-    // Stage 3: Check the packages' dependencies
+    // Stage 2: Check the packages' dependencies
     install_data.step2_check_deps(pkglist.clone());
 
-    // Stage 4: Download the package
+    // Stage 3: Check if package is installed
     install_data.step3_check_installed(reinstall, pkglist.clone());
 
-    // Stage 5: Install the package
+    // Stage 4: Download the package
     install_data.step4_download(bypass_ask);
 
+    // Stage 5: Check sha256sums integrity
+    install_data.step5_check_sums();
+
     // Stage 6: Install the package
-    install_data.step5_install();
+    install_data.step6_install();
 
     // And, that's complete!
 }

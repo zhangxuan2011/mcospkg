@@ -29,6 +29,25 @@
 #include "TextAttributes.h"
 
 int checkVersion(char* package_name, char* version);
+int rm_file(char* dir_name);
+
+int xkexit(char* tmpdir, int errorlevel) {
+	rm_file(tmpdir);
+	exit(errorlevel);
+	return 0;
+}
+
+int chmod3(char* filename, int mode) {
+    int arglen = strlen("sudo chmod +x ") + strlen(filename) + 1;
+
+    char* arg = (char*) malloc(arglen);
+
+    sprintf(arg, "sudo chmod +x %s", filename);
+
+    int result = system(arg);
+
+    return result;
+}
 
 int copy_file(char* src, char* target) { // Copy files
 
@@ -66,7 +85,7 @@ void registerRemoveInfo(char* work_path, char* package_name, char* version) { //
     int target_length = 44 + strlen(package_name); // get string length 
     char* target = (char*) malloc(target_length);	// alloc memory space
     snprintf(target, target_length, "/etc/mcospkg/database/remove_info/%s-UNHOOKS", package_name); // target full path
-	copy_file(unhook_file, target);
+    copy_file(unhook_file, target);
     free(unhook_file); // free memory space
     unhook_file = NULL;
 
@@ -96,7 +115,7 @@ void cleanOperation(char* work_path, char* package_name, char* version) { // NOT
     char *last_script_file = (char*) malloc(last_script_file_length); // Alloc memory space
     snprintf(last_script_file, last_script_file_length, "%s/HOOKS", work_path); // Memory safe version
 
-	chmod(last_script_file, 777);
+    chmod3(last_script_file, 777);
 	
     int script_command_length = strlen("sudo ") + last_script_file_length;
     char *script_command = (char*) malloc(script_command_length); // Alloc memory space
@@ -134,7 +153,7 @@ void installPackageFromSource(char* work_path, char* package_name, char* version
     	textAttr_reset(); // reset text attributes
         perror("Cannot change work directory to extracted directory!");
         free(build_script_file);
-        exit(-1); // Just exit!
+        xkexit(work_path, -1); // Just exit!
     }
     // 3. Start build
     tColorBlue(); // color:blue
@@ -142,7 +161,7 @@ void installPackageFromSource(char* work_path, char* package_name, char* version
     textAttr_reset(); // reset text attributes
     printf("Building package (This may take some time)...\n");
 
-    chmod(build_script_file, 777); // Mode 777
+    chmod3(build_script_file, 777); // Mode 777
 
     int build_command_length = strlen("sudo ") + build_script_file_length + strlen(" > /dev/null") + 1;
     char *build_command = (char*) malloc(build_command_length); // Alloc memory space
@@ -153,7 +172,7 @@ void installPackageFromSource(char* work_path, char* package_name, char* version
         tColorRed(); // color:green
         printf("Build\t--Failed(error %d)\n", build_status);
         textAttr_reset(); // reset text attributes
-        exit(1);
+        xkexit(work_path, 1);
     }
 
     tColorGreen(); // color:green
@@ -186,7 +205,7 @@ void getDirectoryIndex(char* work_path, char* path, char* name, char* index_path
     	printf("E: ");
     	textAttr_reset(); // reset text attributes
         perror("Memory allocation failed!");
-        exit(-1); // it is NULL, don't need free()
+        xkexit(work_path, -1); // it is NULL, don't need free()
     }
     if (!strcmp(name,"")) snprintf(new_path, new_path_length, "%s", path); // DEFAULT
     else snprintf(new_path, new_path_length, "%s/%s", path, name); // OR
@@ -198,7 +217,7 @@ void getDirectoryIndex(char* work_path, char* path, char* name, char* index_path
     	textAttr_reset();
         perror("Cannot open directory!");
         rm_file(work_path); // clean a bit
-        exit(-1);
+        xkexit(work_path, -1);
     }
 
     struct dirent *entry; // file entry
@@ -216,7 +235,7 @@ void getDirectoryIndex(char* work_path, char* path, char* name, char* index_path
 				textAttr_reset();
 				perror("Cannot create file object!");
 				rm_file(work_path); // clean a bit
-				exit(-1);
+				xkexit(work_path, -1);
             }
 
             prefixPath(work_path, full_path);
@@ -265,7 +284,7 @@ int installPackageDirectly(char* work_path, char* package_name, char* version){
         textAttr_reset();
     	perror("Cannot open index files!");
     	rm_file(work_path);
-    	exit(-1);
+    	xkexit(work_path, -1);
    	}
    	
     char *line = NULL;
@@ -319,7 +338,7 @@ void removeRegisterInfo(char* package_name) {
             remove_this_line = 0;
         }
         if(!remove_this_line) {
-            fprintf(fp, line);
+            fprintf(fp, "%s", line);
         }
     }
 	
@@ -333,8 +352,8 @@ void run_unhooks(char* package_name) {
     tColorBlue();
     printf("II: ");
     textAttr_reset();
-	printf("Running uninstall script...\t");
-	fflush(stdout);
+    printf("Running uninstall script...\t");
+    fflush(stdout);
 	
     int unhook_file_length = strlen("/etc/mcospkg/database/remove_info/-UNHOOKS") + strlen(package_name) + 1;
     char* unhook_file = (char*) malloc(unhook_file_length);
@@ -354,7 +373,7 @@ void run_unhooks(char* package_name) {
     system("rm -rf /etc/mcospkg/database/packages.toml &> /dev/null");
     system("mv /etc/mcospkg/database/packages.toml.new /etc/mcospkg/database/packages.toml &> /dev/null");
 
-    chmod(unhook_file, 777);
+    chmod3(unhook_file, 777);
 
     int unhook_command_length = 5 + unhook_file_length + strlen(" &> /dev/null") + 1;
     char* unhook_command = malloc(unhook_command_length);
@@ -492,7 +511,7 @@ int installPackage(char* package_path, char* package_name, char* version){
         printf("E: ");
         textAttr_reset();
         printf("Package not valid: package '%s' not exists!!\n", package_name);
-        exit(1);
+        xkexit(temp_directory_name, 1);
     }
     // 2. Unpack package
     extractArchiveLinux(package_path, temp_directory_name);
@@ -517,14 +536,14 @@ int installPackage(char* package_path, char* package_name, char* version){
         textAttr_reset();
         printf("Invalid package!\n");
         rm_file(temp_directory_name);
-        exit(-1);
+        xkexit(temp_directory_name, -1);
     }
     if(checkVersion(package_name, version) == 0){
         releaseObject(hook_file, build_script_file);
         tColorYellow();
         printf("W: ");
         textAttr_reset();
-        printf("Package version is same!Continued? [y/N] ");
+        printf("Package version is same! Continue? [y/N] ");
 	char result = (char) getchar();
 	if(result == 'y' || result == 'Y') {
 	    removePackage(package_name);
@@ -532,7 +551,7 @@ int installPackage(char* package_path, char* package_name, char* version){
 	else {
 	    printf("Skipped.");
 	    rm_file(temp_directory_name);
-	    exit(1);
+	    xkexit(temp_directory_name, 1);
 	}
     }
     if(checkVersion(package_name, version) == 2){
@@ -542,7 +561,7 @@ int installPackage(char* package_path, char* package_name, char* version){
         textAttr_reset();
         printf("Downgrade is not allowed!\n");
         rm_file(temp_directory_name);
-        exit(-1);
+        xkexit(temp_directory_name, -1);
     }
     if(checkVersion(package_name, version) == 1){
         removeRegisterInfo(package_name);
