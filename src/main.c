@@ -338,7 +338,7 @@ void removeRegisterInfo(char* package_name) {
             remove_this_line = 0;
         }
         if(!remove_this_line) {
-            fprintf(fp, line);
+            fprintf(fp, "%s", line);
         }
     }
 	
