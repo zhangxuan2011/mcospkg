@@ -28,13 +28,15 @@
 #include <stddef.h>
 #include "TextAttributes.h"
 
+int return_code = 0;
+
 int checkVersion(char* package_name, char* version);
 int rm_file(char* dir_name);
 
 int xkexit(char* tmpdir, int errorlevel) {
 	rm_file(tmpdir);
-	exit(errorlevel);
-	return 0;
+	//exit(errorlevel);
+	return_code = errorlevel;
 }
 
 int chmod3(char* filename, int mode) {
@@ -573,5 +575,5 @@ int installPackage(char* package_path, char* package_name, char* version){
     }
     
     releaseObject(hook_file, build_script_file);
-    return 0;
+    return return_code;
 }
