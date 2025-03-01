@@ -57,6 +57,10 @@ impl Color {
     }
 }
 
+enum ErrorCode {
+    Error1 = 1, // Skipped
+    Errore = -1 // Other
+}
 /// This function will read the configuration file and return a HashMap
 /// The HashMap's key is the repository name, and the value is the repository URL
 /// If the configuration file is not found, it will return an error
