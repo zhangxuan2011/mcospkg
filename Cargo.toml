@@ -35,6 +35,10 @@ path = "src/mirror.rs"
 name = "mcospkg-info"
 path = "src/info.rs"
 
+[[bin]]
+name = "mcospkg-package"
+path = "src/package.rs"
+
 [profile.release]
 lto = true
 strip = true

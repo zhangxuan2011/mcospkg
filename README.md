@@ -23,7 +23,7 @@ To build it, ensure you had installed these applications(packages):
  - pkg-config
  - git
 
-After installing it, follow these steps:
+After installing them, follow these steps:
 
 1, Clone from repository
 
@@ -39,7 +39,7 @@ Run this command to build this project:
 
 `cargo build --release -j8`
 
-In it, you can specify the building jobs (In this example, Jobs = 8)
+In this, you can specify the building jobs (In this example, Jobs = 8)
 
 **NOTE**!!!! You must specify the argument `--release` otherwise you **CAN'T** do more steps in this building process. 
 
