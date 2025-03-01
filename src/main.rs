@@ -156,12 +156,6 @@ fn remove(pkglist: Vec<String>, bypass_ask: bool) {
     // Presets
     let color = Color::new();
 
-    // Ensure the pkglist is not empty
-    if pkglist.is_empty() {
-        eprintln!("{}: No package(s) specified.", color.error);
-        exit(1);
-    }
-
     // Init the RemoveData struct
     let mut remove_data = remove::RemoveData::new();
 

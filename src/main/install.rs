@@ -445,7 +445,7 @@ impl InstallData {
             .zip(self.fetch_index.clone().into_iter())
             .clone()
         {
-            print!("{} \"{}\": ", "Package".cyan().bold(), pkg.clone());
+            print!("{} \"{}\": ", "Vaildating package".cyan().bold(), pkg.clone());
             // First, get the file's sha256 intergrity.
             // Get the file name
             let file = self.pkgindex.get(&pkg).unwrap().filename.clone();
@@ -463,7 +463,7 @@ impl InstallData {
         }
 
         if errtime > 0 {
-            println!("{}: {} packages does not pass the checking.", color.error, errtime);
+            println!("{}: {} packages does not pass the vaildating.", color.error, errtime);
             exit(1)
         }
     }
@@ -505,10 +505,10 @@ impl InstallData {
             )
             .unwrap();
             let c_pkg_path = CString::new(pkg.to_str().unwrap()).unwrap();
-            let res = unsafe {
+            let status = unsafe {
                 installPackage(c_pkg_path.as_ptr(), c_pkg_name.as_ptr(), c_version.as_ptr())
             };
-            if res != 0 {
+            if status != 0 {
                 println!("{}: The installation didn't exit normally.", color.error);
             }
         }

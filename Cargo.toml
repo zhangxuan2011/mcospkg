@@ -34,3 +34,10 @@ path = "src/mirror.rs"
 [[bin]]
 name = "mcospkg-info"
 path = "src/info.rs"
+
+[profile.release]
+lto = true
+strip = true
+opt-level = "z"
+panic = "abort"
+codegen-units = 1
