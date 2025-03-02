@@ -3,7 +3,7 @@
 /// and it will install the package by using filename. <br>
 /// <br>
 /// # Usage
-/// 
+///
 /// ```bash
 /// mcospkg-package install [package_id] [package_version] [package_path]
 /// mcospkg-package remove [package_id]
@@ -23,7 +23,7 @@
 // Include some modules
 use clap::{Parser, Subcommand};
 use mcospkg::Color;
-use libc::{c_char, c_int};
+use mcospkg::{installPkg, removePkg};
 use std::ffi::CString;
 
 // Define args
@@ -40,73 +40,49 @@ struct Args {
 enum Operations {
     // The install option
     Install {
-        #[arg(
-            required = true,
-            help = "The package ID"
-        )]
+        #[arg(required = true, help = "The package ID")]
         package_id: String,
 
-        #[arg(
-            required = true,
-            help = "The version of the package"
-        )]
+        #[arg(required = true, help = "The version of the package")]
         package_version: String,
 
-        #[arg(
-            required = true,
-            help = "The package path"
-        )]
+        #[arg(required = true, help = "The package path")]
         package_path: String,
     },
-    
+
     // The remove option
     Remove {
-        #[arg(
-            required = true,
-            help = "The package ID you want to remove"
-        )]
+        #[arg(required = true, help = "The package ID you want to remove")]
         package_id: String,
-    }
-}
-
-// Extern FFI
-unsafe extern "C" {
-    fn installPackage(
-        package_path: *const c_char,
-        package_name: *const c_char,
-        version: *const c_char,
-    ) -> c_int;
-    fn removePackage(
-        package_name: *const c_char
-    );
+    },
 }
 
 fn main() {
     // Presets
     let args = Args::parse();
     let color = Color::new();
-    
+
     // Match it
     match args.operation {
-        Operations::Install {package_id, package_version, package_path} => {
+        Operations::Install {
+            package_id,
+            package_version,
+            package_path,
+        } => {
             let package_path = CString::new(package_path).unwrap();
             let package_version = CString::new(package_version).unwrap();
             let package_id = CString::new(package_id).unwrap();
-            unsafe {
-                let status = installPackage(
-                    package_path.as_ptr(),
-                    package_id.as_ptr(),
-                    package_version.as_ptr()
-                );
-                if status != 0 {
-                    println!("{}: Installation failed with code: {}", color.error, status);
-                }
+            let status = installPkg(
+                package_path.as_ptr(),
+                package_id.as_ptr(),
+                package_version.as_ptr(),
+            );
+            if status != 0 {
+                println!("{}: Installation failed with code: {}", color.error, status);
             }
-        },
-        Operations::Remove {package_id} => {
-            unsafe {
-                removePackage(package_id.as_ptr());
-            }
-        },
+        }
+        Operations::Remove { package_id } => {
+            removePkg(package_id.as_ptr());
+        }
     }
 }

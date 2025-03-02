@@ -31,8 +31,7 @@
 // Import some essential modules
 use colored::Colorize;
 use dialoguer::Input;
-use libc::{c_char, c_int};
-use mcospkg::{download, readcfg, Color};
+use mcospkg::{download, readcfg, Color, installPkg};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
@@ -81,15 +80,7 @@ pub struct InstallData {
     file_index: Vec<String>,          // The package to fetch
 }
 
-// ==========Extern area==========
-unsafe extern "C" {
-    fn installPackage(
-        package_path: *const c_char,
-        package_name: *const c_char,
-        version: *const c_char,
-    ) -> c_int;
-}
-
+// Define Install Public Data
 impl InstallData {
     pub fn new() -> Self {
         Self {
@@ -505,9 +496,7 @@ impl InstallData {
             )
             .unwrap();
             let c_pkg_path = CString::new(pkg.to_str().unwrap()).unwrap();
-            let status = unsafe {
-                installPackage(c_pkg_path.as_ptr(), c_pkg_name.as_ptr(), c_version.as_ptr())
-            };
+            let status = installPkg(c_pkg_path.as_ptr(), c_pkg_name.as_ptr(), c_version.as_ptr());
             if status != 0 {
                 println!("{}: The installation didn't exit normally.", color.error);
             }

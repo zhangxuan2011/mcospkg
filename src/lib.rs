@@ -4,13 +4,14 @@
 // Import the modules
 use colored::{ColoredString, Colorize};
 use indicatif::{ProgressBar, ProgressStyle};
+use libc::{c_char, c_int};
 use reqwest::blocking::get;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::{Error, ErrorKind, Read, Write};
-use std::process::exit;
 use std::path::Path;
+use std::process::exit;
 
 // =====toml define area=====
 // This defines the toml format (/etc/mcospkg/database/package.toml)
@@ -26,43 +27,70 @@ pub struct PkgInfoToml {
 pub struct Color {
     /// The color of the message
     /// This uses in lots of file, so we merged them here.
-    pub error: ColoredString,   // The error message
-    pub tip: ColoredString,     // The tip message
-    pub info: ColoredString,    // The info message
-    pub done: ColoredString,    // The done message
-    pub note: ColoredString,    // The note message
-    pub ok: ColoredString,      // The OK message
-    pub no: ColoredString,      // The No message
+    pub error: ColoredString, // The error message
+    pub tip: ColoredString,  // The tip message
+    pub info: ColoredString, // The info message
+    pub done: ColoredString, // The done message
+    pub note: ColoredString, // The note message
+    pub ok: ColoredString,   // The OK message
+    pub no: ColoredString,   // The No message
 }
 
 // Implement this struct
 impl Color {
     pub fn new() -> Self {
-        let error = "error".red().bold();
-        let tip = "tip".green().bold();
-        let info = "info".blue().bold();
-        let done = "Done".green().bold();
-        let note = "note".yellow().bold();
-        let ok = "OK".green().bold();
-        let no = "No".red().bold();
         Self {
-            error,
-            tip,
-            info,
-            done,
-            note,
-            ok,
-            no,
+            error: "error".red().bold(),
+            tip: "tip".green().bold(),
+            info: "info".blue().bold(),
+            done: "Done".green().bold(),
+            note: "note".yellow().bold(),
+            ok: "OK".green().bold(),
+            no: "No".red().bold(),
         }
     }
 }
 
+// The error code defintions
 pub enum ErrorCode {
-    Skipped = 1, // Skipped
-    Other = -1 // Other
+    Skipped = 1, // For some option skipped
+    Other = -1 // Other error (more error code later)
 }
+
+// This will pub use the C function.
+// Import it first
+unsafe extern "C" {
+    fn installPackage(
+        package_path: *const c_char,
+        package_name: *const c_char,
+        version: *const c_char
+    ) -> c_int;
+    fn removePackage(
+        package_name: *const c_char
+    );
+}
+
+// Then export it
+#[unsafe(no_mangle)]
+pub extern "C" fn installPkg(
+    package_path: *const c_char,
+    package_name: *const c_char,
+    version: *const c_char,
+) -> c_int {
+    unsafe {
+        installPackage(package_path, package_name, version)
+    }
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn removePkg(package_name: *const c_char) {
+    unsafe {
+        removePackage(package_name)
+    }
+}
+
 /// This function will read the configuration file and return a HashMap
-/// The HashMap's key is the repository name, and the value is the repository URL
+/// The HaShMap's key is the repository name, and the value is the repository URL
 /// If the configuration file is not found, it will return an error
 /// If the configuration file is not in the correct format, it will return an error, too.
 /// The format is: `[reponame] = [repourl]`
@@ -152,9 +180,10 @@ pub fn get_installed_package_info() -> HashMap<String, PkgInfoToml> {
 
             let mut _file = match File::create(&file_path) {
                 Err(why) => {
-                    println!("{}: couldn't create /etc/mcospkg/database/packages.toml: ({:?})",
-                    color.error,
-                    why);
+                    println!(
+                        "{}: couldn't create /etc/mcospkg/database/packages.toml: ({:?})",
+                        color.error, why
+                    );
                 }
                 Ok(_) => return Default::default(),
             };

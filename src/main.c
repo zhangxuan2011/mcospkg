@@ -497,7 +497,7 @@ int installPackage(char* package_path, char* package_name, char* version){
     tColorBlue();
     printf("I: ");
     textAttr_reset();
-    printf("Package Name: %s\n", package_name); // NOTE: Output Package Name, can delete
+    printf("Package name: %s\n", package_name); // NOTE: Output Package Name, can delete
     mkdir("/etc/mcospkg/database", 777);
     // 1. Create temp directory
     tColorBlue();
@@ -517,7 +517,9 @@ int installPackage(char* package_path, char* package_name, char* version){
     }
     // 2. Unpack package
     extractArchiveLinux(package_path, temp_directory_name);
+    tColorGreen();
     printf("Done.\n\n");
+    textAttr_Reset();
     // 3. Build or copy
     int build_script_file_length = strlen(temp_directory_name) + strlen("/BUILD-SCRIPT") + 1;
     char *build_script_file = (char*) malloc(build_script_file_length); // Alloc memory space
