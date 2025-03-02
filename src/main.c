@@ -155,7 +155,7 @@ void installPackageFromSource(char* work_path, char* package_name, char* version
     	textAttr_reset(); // reset text attributes
         perror("Cannot change work directory to extracted directory!");
         free(build_script_file);
-        xkexit(work_path, -1); // Just exit!
+        xkexit(work_path, -1); // Just return!
     }
     // 3. Start build
     tColorBlue(); // color:blue
@@ -165,14 +165,14 @@ void installPackageFromSource(char* work_path, char* package_name, char* version
 
     chmod3(build_script_file, 777); // Mode 777
 
-    int build_command_length = strlen("sudo ") + build_script_file_length + strlen(" > /dev/null") + 1;
+    int build_command_length = strlen("sudo ") + build_script_file_length + strlen("&> /dev/null") + 1;
     char *build_command = (char*) malloc(build_command_length); // Alloc memory space
     snprintf(build_command, build_command_length, "sudo %s > /dev/null", build_script_file);
     int build_status = system(build_command); // run build script
 
     if(build_status != 0) {
         tColorRed(); // color:green
-        printf("Build\t--Failed(error %d)\n", build_status);
+        printf("Build\t--Failed (error code %d)\n", build_status);
         textAttr_reset(); // reset text attributes
         xkexit(work_path, 1);
     }
@@ -232,12 +232,12 @@ void getDirectoryIndex(char* work_path, char* path, char* name, char* index_path
         if (entry->d_type == 8) { // File
             FILE* fp = fopen(index_path, "a");
             if (fp == NULL) {
-				tColorRed();
-				printf("E: ");
-				textAttr_reset();
-				perror("Cannot create file object!");
-				rm_file(work_path); // clean a bit
-				xkexit(work_path, -1);
+		tColorRed();
+		printf("E: ");
+		textAttr_reset();
+		perror("Cannot create file object!");
+		rm_file(work_path); // clean a bit
+		xkexit(work_path, -1);
             }
 
             prefixPath(work_path, full_path);
@@ -281,13 +281,13 @@ int installPackageDirectly(char* work_path, char* package_name, char* version){
     fflush(stdout);
     FILE *fp = fopen(index_path, "r");
     if(fp == NULL){
-        tColorRed();
-        printf("Error!\n\nE: ");
-        textAttr_reset();
-    	perror("Cannot open index files!");
-    	rm_file(work_path);
-    	xkexit(work_path, -1);
-   	}
+	tColorRed();
+	printf("Error!\n\nE: ");
+	textAttr_reset();
+	perror("Cannot open index files!");
+	rm_file(work_path);
+	xkexit(work_path, -1);
+    }
    	
     char *line = NULL;
     size_t len = 0;
@@ -400,7 +400,7 @@ void removePackage(char* package_name) {
     tColorBlue();
     printf("I: ");
     textAttr_reset();
-	printf("Package Name: %s\n", package_name); // NOTE: Output Package Name, can delete
+    printf("Package name: %s\n", package_name); // NOTE: Output Package Name, can delete
     if (exists(index_path)) { // Directly
         tColorBlue();
         printf("II: ");
