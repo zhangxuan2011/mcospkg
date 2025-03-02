@@ -33,10 +33,10 @@ int return_code = 0;
 int checkVersion(char* package_name, char* version);
 int rm_file(char* dir_name);
 
-int xkexit(char* tmpdir, int errorlevel) {
-	rm_file(tmpdir);
-	//exit(errorlevel);
-	return_code = errorlevel;
+void xkexit(char* tmpdir, int errorlevel) {
+    rm_file(tmpdir);
+    //exit(errorlevel);
+    return_code = errorlevel;
 }
 
 int chmod3(char* filename, int mode) {
@@ -519,7 +519,7 @@ int installPackage(char* package_path, char* package_name, char* version){
     extractArchiveLinux(package_path, temp_directory_name);
     tColorGreen();
     printf("Done.\n\n");
-    textAttr_Reset();
+    textAttr_reset();
     // 3. Build or copy
     int build_script_file_length = strlen(temp_directory_name) + strlen("/BUILD-SCRIPT") + 1;
     char *build_script_file = (char*) malloc(build_script_file_length); // Alloc memory space

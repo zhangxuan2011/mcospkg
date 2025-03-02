@@ -9,7 +9,7 @@ use std::io::Write;
 #[derive(Parser, Debug)]
 #[command(name = "mcospkg-mirror")]
 #[command(about = "The mirror list manager of mcospkg")]
-#[command(version = "0.9.1 Build 9121")]
+#[command(version = "0.9.1 (Build 9125)")]
 struct Args {
     #[command(subcommand)]
     operation: Operations,

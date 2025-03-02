@@ -47,7 +47,7 @@ use mcospkg::Color;
 #[derive(Parser, Debug)]
 #[command(name = "mcospkg")]
 #[command(about = "A linux package-manager made for MinecraftOS (Main program)")]
-#[command(version = "0.9.1 Build 9121")]
+#[command(version = "0.9.1 (Build 9125)")]
 
 // Define argument lists
 struct Args {
