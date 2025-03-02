@@ -15,7 +15,7 @@ use mcospkg::Color;
 #[derive(Parser, Debug)]
 #[command(name = "mcospkg-info")]
 #[command(about = "Information of mcospkg")]
-#[command(version = "0.9.1")] // The version is same as the main's.
+#[command(version = "0.9.1 (Build 9125)")] // The version is same as the main's.
 
 // Third, we need to define a struct, it shows the argument options.
 struct Args {

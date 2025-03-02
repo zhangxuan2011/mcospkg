@@ -31,8 +31,7 @@
 // Import some essential modules
 use colored::Colorize;
 use dialoguer::Input;
-use libc::{c_char, c_int};
-use mcospkg::{download, readcfg, Color};
+use mcospkg::{download, readcfg, Color, installPkg};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
@@ -81,15 +80,7 @@ pub struct InstallData {
     file_index: Vec<String>,          // The package to fetch
 }
 
-// ==========Extern area==========
-unsafe extern "C" {
-    fn installPackage(
-        package_path: *const c_char,
-        package_name: *const c_char,
-        version: *const c_char,
-    ) -> c_int;
-}
-
+// Define Install Public Data
 impl InstallData {
     pub fn new() -> Self {
         Self {
@@ -445,7 +436,7 @@ impl InstallData {
             .zip(self.fetch_index.clone().into_iter())
             .clone()
         {
-            print!("{} \"{}\": ", "Package".cyan().bold(), pkg.clone());
+            print!("{} \"{}\": ", "Vaildating package".cyan().bold(), pkg.clone());
             // First, get the file's sha256 intergrity.
             // Get the file name
             let file = self.pkgindex.get(&pkg).unwrap().filename.clone();
@@ -463,7 +454,7 @@ impl InstallData {
         }
 
         if errtime > 0 {
-            println!("{}: {} packages does not pass the checking.", color.error, errtime);
+            println!("{}: {} packages does not pass the vaildating.", color.error, errtime);
             exit(1)
         }
     }
@@ -505,10 +496,8 @@ impl InstallData {
             )
             .unwrap();
             let c_pkg_path = CString::new(pkg.to_str().unwrap()).unwrap();
-            let res = unsafe {
-                installPackage(c_pkg_path.as_ptr(), c_pkg_name.as_ptr(), c_version.as_ptr())
-            };
-            if res != 0 {
+            let status = installPkg(c_pkg_path.as_ptr(), c_pkg_name.as_ptr(), c_version.as_ptr());
+            if status != 0 {
                 println!("{}: The installation didn't exit normally.", color.error);
             }
         }

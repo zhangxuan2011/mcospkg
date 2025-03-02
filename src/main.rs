@@ -1,16 +1,15 @@
 /// This file contains the executable file `mcospkg`.
 ///
-/// Usage:
+/// # Usage
 ///
 /// ```bash
-/// mcospkg [OPTIONS] <OPTION> <PACKAGES...>
+/// mcospkg install [OPTION] <PACKAGES...>
+/// mcospkg remove [OPTION] <PACKAGES...>
 /// ```
 ///
-/// Explain:
+/// # Explain
 ///
-/// [OPTIONS]: Including the `-y`, `-h` and `-V`;
-///
-/// <OPTION> : Be different with [OPTIONS], it's a string, only `install`, `remove` and `update`;
+/// [OPTION]: Including the `-y`, `-h` and `-V`;
 ///
 /// <PACKAGES> : The package you want to install/update/remove
 ///
@@ -18,9 +17,10 @@
 ///
 /// -y, --bypass: Install/remove/update packages WITHOUT asking;
 /// -h, --help  : Get help message;
+///
 /// -V, --version: Print the version to the screen
 ///
-/// Example:
+/// # Example
 ///
 /// ```bash
 /// mcospkg install python  # Install package called "python"
@@ -40,7 +40,6 @@ use main::install;
 use main::remove;
 use clap::{Parser, Subcommand};
 use mcospkg::Color;
-use std::process::exit;
 
 // ========structs define area=========
 
@@ -48,7 +47,7 @@ use std::process::exit;
 #[derive(Parser, Debug)]
 #[command(name = "mcospkg")]
 #[command(about = "A linux package-manager made for MinecraftOS (Main program)")]
-#[command(version = "0.9.1")]
+#[command(version = "0.9.1 (Build 9125)")]
 
 // Define argument lists
 struct Args {
@@ -153,15 +152,6 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
 // This is the remove function
 
 fn remove(pkglist: Vec<String>, bypass_ask: bool) {
-    // Presets
-    let color = Color::new();
-
-    // Ensure the pkglist is not empty
-    if pkglist.is_empty() {
-        eprintln!("{}: No package(s) specified.", color.error);
-        exit(1);
-    }
-
     // Init the RemoveData struct
     let mut remove_data = remove::RemoveData::new();
 
