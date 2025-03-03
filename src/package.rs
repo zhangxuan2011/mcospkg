@@ -21,7 +21,9 @@
 /// ```
 ///
 // Include some modules
+mod config;
 use clap::{Parser, Subcommand};
+use config::VERSION;
 use mcospkg::Color;
 use mcospkg::{installPkg, removePkg};
 use std::ffi::CString;
@@ -30,7 +32,7 @@ use std::ffi::CString;
 #[derive(Parser, Debug)]
 #[command(name = "mcospkg-package")]
 #[command(about = "The lite installer of mcospkg.")]
-#[command(version = "0.9.1 (Build 9125)")]
+#[command(version = VERSION)]
 struct Args {
     #[command(subcommand)]
     operation: Operations,
