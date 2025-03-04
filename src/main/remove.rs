@@ -31,7 +31,7 @@
 ///
 // Import some modules
 use dialoguer::Input;
-use mcospkg::{get_installed_package_info, removePkg, Color, PkgInfoToml};
+use mcospkg::{get_installed_package_info, remove_pkg, Color, PkgInfoToml};
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::process::exit;
@@ -142,7 +142,9 @@ impl RemoveData {
         // Stage 4: Remove the package
         for delete_pkg in &self.delete_pkgs {
             let package_name = CString::new(delete_pkg.as_str()).unwrap();
-            removePkg(package_name.as_ptr())
+            unsafe {
+                remove_pkg(package_name.as_ptr());
+            };
         }
     }
 }

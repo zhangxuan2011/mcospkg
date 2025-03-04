@@ -31,7 +31,7 @@
 // Import some essential modules
 use colored::Colorize;
 use dialoguer::Input;
-use mcospkg::{download, readcfg, Color, installPkg};
+use mcospkg::{download, readcfg, Color, install_pkg};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
@@ -496,7 +496,13 @@ impl InstallData {
             )
             .unwrap();
             let c_pkg_path = CString::new(pkg.to_str().unwrap()).unwrap();
-            let status = installPkg(c_pkg_path.as_ptr(), c_pkg_name.as_ptr(), c_version.as_ptr());
+            let status = unsafe {
+                install_pkg(
+                    c_pkg_path.as_ptr(), 
+                    c_pkg_name.as_ptr(), 
+                    c_version.as_ptr()
+                )
+            };
             if status != 0 {
                 println!("{}: The installation didn't exit normally.", color.error);
             }
