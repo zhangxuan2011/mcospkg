@@ -102,7 +102,7 @@ enum Operations {
             long = "bypass",
             short = 'y',
             default_value_t = false,
-            help = "Specify it will not ask ANY questions"            )]
+            help = "Specify it will not ask ANY questions")]
         bypass_ask: bool,
     }
 }
