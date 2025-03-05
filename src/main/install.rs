@@ -304,7 +304,7 @@ impl InstallData {
         // First, get package's version
         // Then, we need to ask user that if they want to install it
         println!(
-            "{}: The following packages is being installing:",
+            "{}: The following packages is being installed:",
             color.info
         );
         let len = self.fetch_index.len();
