@@ -24,6 +24,7 @@ cd etc/mcospkg	# Enter and so something...
 echo "main = https://zhangxuan2011.github.io/mcospkg/repo/main" > repo.conf	# Write configuration, you can also define a repo by yourself(This is default)
 mkdir -p database/remote    # And, this will save the remote package info
 mkdir -p database/remove_info   # This saves the locally installed packages information
+touch database/packages.toml    # To save the installed package's info
 cd ../..
 
 # We've done the working in etc, now in var.

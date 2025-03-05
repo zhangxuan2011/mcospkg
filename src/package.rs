@@ -87,7 +87,7 @@ fn main() {
         }
         Operations::Remove { package_id } => {
             unsafe {
-                remove_pkg(package_id.as_ptr());
+                remove_pkg(package_id.as_ptr() as *const i8);
             }
         }
     }
