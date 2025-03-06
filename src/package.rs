@@ -86,6 +86,7 @@ fn main() {
             }
         }
         Operations::Remove { package_id } => {
+            let package_id = CString::new(package_id).unwrap();
             unsafe {
                 remove_pkg(package_id.as_ptr());
             }
