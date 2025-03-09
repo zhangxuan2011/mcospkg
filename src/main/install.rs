@@ -31,12 +31,14 @@
 // Import some essential modules
 use colored::Colorize;
 use dialoguer::Input;
-use libc::{c_char, c_int};
-use mcospkg::{download, get_installed_package_info, readcfg, Color};
+use mcospkg::{download, readcfg, Color, install_pkg};
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::fmt;
+use std::fs::{self, File};
+use std::io::{self, Read};
 use std::path::Path;
 use std::process::exit;
 
@@ -46,6 +48,7 @@ use std::process::exit;
 struct PkgInfo {
     filename: String,
     version: String,
+    sha256sums: String,
 }
 
 // This implete the trait "Display", we'll use it later.
@@ -71,20 +74,13 @@ pub struct InstallData {
     pkgindex_total: Vec<HashMap<String, PkgInfo>>, // The package index
     baseon_total: Vec<HashMap<String, Vec<String>>>, // The package baseon
     pkg_version_index: Vec<String>,   // The package version
+    pkg_sha256sums_index: Vec<String>,  // The package sha256
     pkgindex: HashMap<String, PkgInfo>, // The package index
     fetch_index: Vec<String>,         // The package to fetch
     file_index: Vec<String>,          // The package to fetch
 }
 
-// ==========Extern area==========
-extern "C" {
-    fn installPackage(
-        package_path: *const c_char,
-        package_name: *const c_char,
-        version: *const c_char,
-    ) -> c_int;
-}
-
+// Define Install Public Data
 impl InstallData {
     pub fn new() -> Self {
         Self {
@@ -94,6 +90,7 @@ impl InstallData {
             pkgindex_total: vec![],
             baseon_total: vec![],
             pkg_version_index: vec![],
+            pkg_sha256sums_index: vec![],
             pkgindex: HashMap::new(),
             fetch_index: vec![],
             file_index: vec![],
@@ -108,6 +105,7 @@ impl InstallData {
         // First, load configuration and get its HashMap
         match readcfg() {
             Err(e) => {
+                println!("{}", color.error);
                 println!("{}: {}", color.error, e);
                 println!(
                     "{}: Consider using this format to write to that file:\n\t{}",
@@ -128,6 +126,9 @@ impl InstallData {
             let repopath = format!("/etc/mcospkg/database/remote/{}.json", reponame);
             // If index not exist, just quit
             if !Path::new(&repopath).exists() {
+                if errtime == 0 {
+                    println!("{}", color.error);
+                }
                 println!(
                     "{}: Repository index \"{}\" not found",
                     color.error, reponame
@@ -249,77 +250,50 @@ impl InstallData {
         // If it is exist, we need to ask user if they want to reinstall it
         // If it is not exist, we need to ask user if they want to install it
 
-        // First, parse it
-        let installed_packages = get_installed_package_info();
+        // First, read it
+        let binding = fs::read_to_string("/etc/mcospkg/database/packages.toml")
+            .unwrap_or_else(|err| {
+                println!("{}", color.error);
+                println!(
+                    "{}: Cannot read \"/etc/mcospkg/database/packages.toml\": {}",
+                    color.error, err
+                );
+                exit(1);
+            })
+            .to_string();
+        let installed_packages = binding.split("\n").collect::<Vec<&str>>();
 
         // Then check
         let mut errtime = 0;
-        for (installed_pkg, pkglist_pkg) in installed_packages.iter().zip(pkglist.iter()) {
-            if installed_pkg.0 == pkglist_pkg {
-                if reinstall {
-                    continue;
-                } else {
-                    println!("{}", color.error);
-                    println!(
-                        "{}: Package \"{}\" is installed, cannot reinstall it.",
-                        color.error, pkglist_pkg,
-                    );
-                    errtime += 1;
+        for pkg in &pkglist {
+            let check_pkg = format!("[{}]", &pkg);
+            if !reinstall {
+                for installed_pkg in installed_packages.clone() {
+                    if installed_pkg == check_pkg {
+                        if errtime == 0 {
+                            println!("{}", color.error);
+                        }
+                        println!(
+                            "{}: Package \"{}\" has installed, cannot reinstall it without \"reinstall\" mode",
+                            color.error,
+                            pkg,
+                        );
+                        errtime += 1;
+                    } else {
+                        continue;
+                    }
                 }
             }
         }
 
         if errtime > 0 {
             println!(
-                "{}: To reinstall it, use \"{}\"",
+                "{}: To reinstall it, please append an argument \"{}\" after the command.",
                 color.note,
-                "mcospkg reinstall <package>".cyan()
+                "-r".cyan()
             );
             exit(1);
         }
-
-        // if !reinstall {
-        //     print!("{}: Checking if the package is installed... ", color.info);
-        //     for pkg in &self.fetch_index {
-        //         if Path::new(&format!(
-        //             "/etc/mcospkg/database/remove_color.info/{}-UNHOOKS",
-        //             pkg
-        //         ))
-        //         .exists()
-        //         {
-        //             println!("{}", color.error);
-        // println!(
-        //     "{}: Package \"{}\" is installed, cannot reinstall it\nTo reinstall it, use \"{}\"",
-        //     color.error,
-        //     pkg,
-        //     "mcospkg reinstall <package>".cyan()
-        // );
-        //             exit(1)
-        //         }
-        //     }
-        // }
-
-        // // If the "reinstall" = true, check is it NOT installed
-        // if reinstall {
-        //     print!("{}: Checking if the package is installed... ", color.info);
-        //     for pkg in &self.fetch_index {
-        //         if !Path::new(&format!(
-        //             "/etc/mcospkg/database/remove_color.info/{}-UNHOOKS",
-        //             pkg
-        //         ))
-        //         .exists()
-        //         {
-        //             println!("{}", color.error);
-        //             println!(
-        //                 "{}: Package \"{}\" is not installed, cannot reinstall it without \"reinstall\" mode.\nTo install it, use \"{}\"",
-        //                 color.error,
-        //                 pkg,
-        //                 "mcospkg install <package>".cyan()
-        //             );
-        //             exit(1)
-        //         }
-        //     }
-        // }
         println!("{}", color.done);
     }
 
@@ -330,13 +304,19 @@ impl InstallData {
         // First, get package's version
         // Then, we need to ask user that if they want to install it
         println!(
-            "{}: The following packages is being (re)installed:",
+            "{}: The following packages is being installed:",
             color.info
         );
         let len = self.fetch_index.len();
         for (i, pkg) in self.fetch_index.clone().into_iter().enumerate() {
+            // Get each package's version
             let pkg_version = self.pkgindex.get(&pkg).unwrap().version.clone();
             self.pkg_version_index.push(pkg_version.clone());
+
+            // Get each package's sha256
+            let pkg_sha256sums = self.pkgindex.get(&pkg).unwrap().sha256sums.clone();
+            self.pkg_sha256sums_index.push(pkg_sha256sums.clone());
+            // Print the package list
             if i < len - 1 {
                 print!("{} ({}), ", pkg, pkg_version);
             } else {
@@ -437,18 +417,62 @@ impl InstallData {
             self.file_index.push(pkg_path.clone());
         }
     }
+    
+    pub fn step5_check_sums(&mut self) {
+        let color = Color::new();
 
-    pub fn step5_install(&mut self) {
+        // Stage 5: Check sha256sums
+        // This stage check sha256sums of the package.
+        // All sums are stored in "self.pkg_sha256sums_total",
+        // so we'll get it first.
+        println!("{}: Checking SHA256 sums...", color.info);
+        println!("========Results========");    // Begin message
+
+        // Get each sha256sums
+        let mut errtime: u32 = 0;
+        for (sha256, pkg) in self
+            .pkg_sha256sums_index
+            .clone()
+            .into_iter()
+            .zip(self.fetch_index.clone().into_iter())
+            .clone()
+        {
+            print!("{} \"{}\": ", "Vaildating package".cyan().bold(), pkg.clone());
+            // First, get the file's sha256 intergrity.
+            // Get the file name
+            let file = self.pkgindex.get(&pkg).unwrap().filename.clone();
+            // Get the full path
+            let full_path = format!("/var/cache/mcospkg/{}", file);
+            // Then calculate its sums
+            let file_sums = Self::vaildate_sums(&full_path).unwrap();
+            // Check
+            if file_sums != sha256 {
+                println!("{}", color.no);
+                errtime += 1;
+            } else {
+                println!("{}", color.ok);
+            }
+        }
+        println!("======================"); // End message
+
+        if errtime > 0 {
+            println!("{}: {} packages does not pass the vaildating.", color.error, errtime);
+            exit(1)
+        }
+    }
+
+    pub fn step6_install(&mut self) {
         let color = Color::new();
         println!("{}: Installing packages... ", color.info);
 
-        // Stage 5: Install the package
+        // Stage 6: Install the package
         // My friend, Xiaokuai, uses C to write the install library.
         // I'll thank him at here :)
         // So, we need to use the C library to install the package
         // First, we need to convert the string to CString
         let mut c_file_index: Vec<CString> = Vec::new(); // Record the index, we'll use it
-                                                         // Convert the string to CString
+    
+        // Convert the string to CString
         for filepath in &self.file_index {
             let c_pkg = CString::new(filepath.clone()).unwrap();
             c_file_index.push(c_pkg);
@@ -474,12 +498,29 @@ impl InstallData {
             )
             .unwrap();
             let c_pkg_path = CString::new(pkg.to_str().unwrap()).unwrap();
-            let res = unsafe {
-                installPackage(c_pkg_path.as_ptr(), c_pkg_name.as_ptr(), c_version.as_ptr())
+            let status = unsafe {
+                install_pkg(
+                    c_pkg_path.as_ptr(), 
+                    c_pkg_name.as_ptr(), 
+                    c_version.as_ptr()
+                )
             };
-            if res != 0 {
+            if status != 0 {
                 println!("{}: The installation didn't exit normally.", color.error);
             }
         }
+    }
+
+    fn vaildate_sums(file_path: &str) -> io::Result<String> {
+        // This uses in vaildating sha256sums of the things
+        // we downloaded.
+        let mut file = File::open(file_path)?;
+        let mut buffer = Vec::new();
+        file.read_to_end(&mut buffer)?;
+
+        let mut hasher = Sha256::new();
+        hasher.update(&buffer);
+        let result = hasher.finalize();
+        Ok(hex::encode(result))
     }
 }

@@ -29,19 +29,12 @@
 /// Line 137-150 is the usage of this file.
 /// (NOTE: The `src/main.rs` maybe update so that the lines may change.)
 ///
-
 // Import some modules
 use dialoguer::Input;
-use libc::c_char;
-use mcospkg::{get_installed_package_info, Color, PkgInfoToml};
+use mcospkg::{get_installed_package_info, remove_pkg, Color, PkgInfoToml};
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::process::exit;
-
-// Extern C Libs(libpkgmgr.a)
-extern "C" {
-    fn removePackage(package_name: *const c_char);
-}
 
 // ========structs define area=========
 pub struct RemoveData {
@@ -91,7 +84,7 @@ impl RemoveData {
         let mut errtime = 0;
         for package in &pkglist {
             if !package_keys.contains(package) {
-                eprintln!(
+                println!(
                     "{}: Package \"{}\" is not installed, so we have no idea (T_T)",
                     color.error, package
                 );
@@ -100,7 +93,7 @@ impl RemoveData {
         }
 
         if errtime > 0 {
-            eprintln!("{}: {} errors occurred, terminated.", color.error, errtime);
+            println!("{}: {} errors occurred, terminated.", color.error, errtime);
             exit(1)
         }
 
@@ -149,7 +142,9 @@ impl RemoveData {
         // Stage 4: Remove the package
         for delete_pkg in &self.delete_pkgs {
             let package_name = CString::new(delete_pkg.as_str()).unwrap();
-            unsafe { removePackage(package_name.as_ptr()) }
+            unsafe {
+                remove_pkg(package_name.as_ptr());
+            };
         }
     }
 }

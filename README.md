@@ -23,7 +23,7 @@ To build it, ensure you had installed these applications(packages):
  - pkg-config
  - git
 
-After installing it, follow these steps:
+After installing them, follow these steps:
 
 1, Clone from repository
 
@@ -39,7 +39,7 @@ Run this command to build this project:
 
 `cargo build --release -j8`
 
-In it, you can specify the building jobs (In this example, Jobs = 8)
+In this, you can specify the building jobs (In this example, Jobs = 8)
 
 **NOTE**!!!! You must specify the argument `--release` otherwise you **CAN'T** do more steps in this building process. 
 
@@ -47,6 +47,22 @@ In it, you can specify the building jobs (In this example, Jobs = 8)
 
 Run the `install.sh` we've given:
 
-`sudo ./install.sh`
+`./install.sh`
 
 This will install the mcospkg to `/` (Defined in `PREFIX`)
+
+## Build Version Rules
+
+In each updates, we may change the build version of the program.
+
+There are 4 levels of the build updates:
+ - Code Struct Changes (Build += 1),
+ - Output Style Changes (Build += 2),
+ - Feature Updates (Build += 3),
+ - Important Feature Updates (Build += 4).
+
+Now let me introduce the rules:
+1. Each commit messages must mark the latest build numbers;
+2. If 2 same levels' commit are next to each other, the build version only increases once, not twice.
+
+Build numbers since: **9121 (v0.9.1)**.

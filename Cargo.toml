@@ -1,8 +1,8 @@
 [package]
 name = "mcospkg"
-version = "0.9.0"
+version = "0.9.1"
 authors = ["zhangxuan2011 <zx20110412@outlook.com>", "RainyHowCool <rainyhowcool@outlook.com>"]
-edition = "2021"
+edition = "2024"
 
 [package.metadata]
 license = "GPL-3.0"
@@ -12,13 +12,16 @@ repository = "https://github.com/zhangxuan2011/mcospkg"
 clap = { version = "4.5.23", features = ["derive"] }
 colored = "3.0.0"
 dialoguer = "0.11.0"
+hex = "0.4.3"
 indicatif = "0.17.9"
 libc = "0.2.169"
 reqwest = { version = "0.12.12", features = ["blocking"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.135"
+sha2 = "0.10.8"
 toml = "0.8.20"
 
+# The deps for building C libs
 [build-dependencies]
 cc = "1.2.10"
 
@@ -32,3 +35,14 @@ path = "src/mirror.rs"
 [[bin]]
 name = "mcospkg-info"
 path = "src/info.rs"
+
+[[bin]]
+name = "mcospkg-package"
+path = "src/package.rs"
+
+# Optimize options
+[profile.release]
+lto = true
+strip = true
+opt-level = "z"
+panic = "abort"

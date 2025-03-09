@@ -1,16 +1,15 @@
 /// This file contains the executable file `mcospkg`.
 ///
-/// Usage:
+/// # Usage
 ///
 /// ```bash
-/// mcospkg [OPTIONS] <OPTION> <PACKAGES...>
+/// mcospkg install [OPTION] <PACKAGES...>
+/// mcospkg remove [OPTION] <PACKAGES...>
 /// ```
 ///
-/// Explain:
+/// # Explain
 ///
-/// [OPTIONS]: Including the `-y`, `-h` and `-V`;
-///
-/// <OPTION> : Be different with [OPTIONS], it's a string, only `install`, `remove` and `update`;
+/// [OPTION]: Including the `-y`, `-h` and `-V`;
 ///
 /// <PACKAGES> : The package you want to install/update/remove
 ///
@@ -18,9 +17,10 @@
 ///
 /// -y, --bypass: Install/remove/update packages WITHOUT asking;
 /// -h, --help  : Get help message;
+///
 /// -V, --version: Print the version to the screen
 ///
-/// Example:
+/// # Example
 ///
 /// ```bash
 /// mcospkg install python  # Install package called "python"
@@ -36,11 +36,12 @@ mod main {
     pub mod install;
     pub mod remove;
 }
+mod config;
+use config::VERSION;
 use main::install;
 use main::remove;
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use mcospkg::Color;
-use std::process::exit;
 
 // ========structs define area=========
 
@@ -48,37 +49,70 @@ use std::process::exit;
 #[derive(Parser, Debug)]
 #[command(name = "mcospkg")]
 #[command(about = "A linux package-manager made for MinecraftOS (Main program)")]
-#[command(version = "0.1.1-debug")]
+#[command(version = VERSION)]
 
 // Define argument lists
 struct Args {
-    #[arg(
-        required = true,
-        help = "Supports: install/remove/remove-all/update/reinstall"
-    )]
-    option: String,
+    #[command(subcommand)]
+    operation: Operations,
+}
 
-    #[arg(required = false)]
-    packages: Vec<String>,
+// Define Subcommand
+#[derive(Subcommand, Debug)]
+enum Operations {
+    #[command(about = "Install the package(s).")]
+    Install {
+        // Get packages
+        #[arg(
+            required = true,
+            help = "The package(s) you want to install"
+        )]
+        packages: Vec<String>,
+        
+        // And should we bypass asking
+        #[arg(
+            long = "bypass",
+            short = 'y',
+            default_value_t = false,
+            help = "Specify it will not ask ANY questions"            )]
+        bypass_ask: bool,
 
-    #[arg(
-        long = "bypass",
-        short = 'y',
-        default_value_t = false,
-        help = "Specify it will not ask ANY questions"
-    )]
-    bypass_ask: bool,
+        // And should we reinstall it
+        #[arg(
+            long = "reinstall",
+            short = 'r',
+            default_value_t = false,
+            help = "Specify it will (re)install package"
+        )]
+        reinstall: bool,
+    },
+
+    // And remove
+    #[command(about = "Remove the package(s).")]
+    Remove {
+        // Get packages
+        #[arg(
+            required = true,
+            help = "The package(s) you want to remove"
+        )]
+        packages: Vec<String>,
+
+        // And should we bypass asking
+        #[arg(
+            long = "bypass",
+            short = 'y',
+            default_value_t = false,
+            help = "Specify it will not ask ANY questions")]
+        bypass_ask: bool,
+    }
 }
 
 // ========functions define area==========
 fn main() {
-    let color = Color::new();
     let args = Args::parse();
-    match args.option.as_str() {
-        "install" => install(args.packages, args.bypass_ask, false),
-        "remove" => remove(args.packages, args.bypass_ask),
-        "reinstall" => install(args.packages, args.bypass_ask, true),
-        _ => println!("{}: unknown option: {}", color.error, args.option),
+    match args.operation {
+        Operations::Install {packages, bypass_ask, reinstall} => install(packages, bypass_ask, reinstall),
+        Operations::Remove {packages, bypass_ask} => remove(packages, bypass_ask),
     };
 }
 
@@ -91,29 +125,26 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
         println!("{}: Reinstall mode has been enabled.", color.note);
     }
 
-    // Next, check if pkgindex is empty
-    if pkglist.is_empty() {
-        println!("{}: No package(s) specified.", color.error);
-        exit(2);
-    }
-
     // Init the InstallData struct
     let mut install_data = install::InstallData::new();
 
     // Stage 1: Get the pkgindex from the repositories
     install_data.step1_explain_pkg(pkglist.clone()); // Stage 2: Check if the package is exist
 
-    // Stage 3: Check the packages' dependencies
+    // Stage 2: Check the packages' dependencies
     install_data.step2_check_deps(pkglist.clone());
 
-    // Stage 4: Download the package
+    // Stage 3: Check if package is installed
     install_data.step3_check_installed(reinstall, pkglist.clone());
 
-    // Stage 5: Install the package
+    // Stage 4: Download the package
     install_data.step4_download(bypass_ask);
 
+    // Stage 5: Check sha256sums integrity
+    install_data.step5_check_sums();
+
     // Stage 6: Install the package
-    install_data.step5_install();
+    install_data.step6_install();
 
     // And, that's complete!
 }
@@ -123,15 +154,6 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
 // This is the remove function
 
 fn remove(pkglist: Vec<String>, bypass_ask: bool) {
-    // Presets
-    let color = Color::new();
-
-    // Ensure the pkglist is not empty
-    if pkglist.is_empty() {
-        eprintln!("{}: No package(s) specified.", color.error);
-        exit(1);
-    }
-
     // Init the RemoveData struct
     let mut remove_data = remove::RemoveData::new();
 

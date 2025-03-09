@@ -7,7 +7,9 @@
 // Ok, no more bullshit, let's start!
 
 // First, we need to import some modules:
+mod config;
 use clap::Parser; // To parse argument(info-type)
+use config::VERSION;
 use colored::Colorize; // To show colorful text(in var "error")
 use mcospkg::Color;
 
@@ -15,7 +17,7 @@ use mcospkg::Color;
 #[derive(Parser, Debug)]
 #[command(name = "mcospkg-info")]
 #[command(about = "Information of mcospkg")]
-#[command(version = "0.1.1-debug")] // The version is same as the main's.
+#[command(version = VERSION)] // The version is same as the main's.
 
 // Third, we need to define a struct, it shows the argument options.
 struct Args {

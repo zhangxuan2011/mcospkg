@@ -5,7 +5,7 @@ PREFIX="/"
 
 # Check is build file exist
 if [ ! -d target/release ]; then
-    echo -e "Error: Build dir 'target/release' not found! Quiting..."
+    echo "Error: Build dir 'target/release' not found! Quiting..."
     exit 1
 fi
 
@@ -24,6 +24,7 @@ cd etc/mcospkg	# Enter and so something...
 echo "main = https://zhangxuan2011.github.io/mcospkg/repo/main" > repo.conf	# Write configuration, you can also define a repo by yourself(This is default)
 mkdir -p database/remote    # And, this will save the remote package info
 mkdir -p database/remove_info   # This saves the locally installed packages information
+touch database/packages.toml    # To save the installed package's info
 cd ../..
 
 # We've done the working in etc, now in var.
@@ -50,9 +51,9 @@ fi
 
 # Start to copy
 echo "=====OUTPUT====="
-mkdir -p $PREFIX/bin
-cp -rv target/intergrated/bin/* $PREFIX/bin
-cp -rv target/intergrated/* $PREFIX
+sudo mkdir -p $PREFIX/bin
+sudo cp -rv target/intergrated/bin/* $PREFIX/bin
+sudo cp -rv target/intergrated/* $PREFIX
 echo "=====END OF OUTPUT====="
 echo "Installation completed."
 exit 0
