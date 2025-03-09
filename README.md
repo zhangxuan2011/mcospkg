@@ -51,7 +51,7 @@ Run the `install.sh` we've given:
 
 This will install the mcospkg to `/` (Defined in `PREFIX`)
 
-# Build Version Rules
+## Build Version Rules
 
 In each updates, we may change the build version of the program.
 
@@ -61,6 +61,8 @@ There are 4 levels of the build updates:
  - Feature Updates (Build += 3),
  - Important Feature Updates (Build += 4).
 
-Each commit messages must mark the latest build numbers.
+Now let me introduce the rules:
+1. Each commit messages must mark the latest build numbers;
+2. If 2 same levels' commit are next to each other, the build version only increases once, not twice.
 
 Build numbers since: **9121 (v0.9.1)**.
