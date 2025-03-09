@@ -426,6 +426,7 @@ impl InstallData {
         // All sums are stored in "self.pkg_sha256sums_total",
         // so we'll get it first.
         println!("{}: Checking SHA256 sums...", color.info);
+        println!("========Results========");    // Begin message
 
         // Get each sha256sums
         let mut errtime: u32 = 0;
@@ -452,6 +453,7 @@ impl InstallData {
                 println!("{}", color.ok);
             }
         }
+        println!("======================"); // End message
 
         if errtime > 0 {
             println!("{}: {} packages does not pass the vaildating.", color.error, errtime);
