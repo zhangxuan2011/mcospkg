@@ -1,4 +1,6 @@
 // First, import some modules we need
+mod config;
+use config::VERSION;
 use clap::{Parser, Subcommand};
 use colored::Colorize;
 use mcospkg::{download, readcfg, Color};
@@ -9,7 +11,7 @@ use std::io::Write;
 #[derive(Parser, Debug)]
 #[command(name = "mcospkg-mirror")]
 #[command(about = "The mirror list manager of mcospkg")]
-#[command(version = "0.9.1 (Build 9125)")]
+#[command(version = VERSION)]
 struct Args {
     #[command(subcommand)]
     operation: Operations,

@@ -121,7 +121,7 @@ void cleanOperation(char* work_path, char* package_name, char* version) { // NOT
 	
     int script_command_length = strlen("sudo ") + last_script_file_length;
     char *script_command = (char*) malloc(script_command_length); // Alloc memory space
-    snprintf(script_command, script_command_length, "sudo %s", last_script_file); // Memory safe version
+    snprintf(script_command, script_command_length, "sudo %s &> /dev/null", last_script_file); // Memory safe version
 
     system(script_command); // run install script
     tColorGreen(); // color:green
@@ -180,6 +180,7 @@ void installPackageFromSource(char* work_path, char* package_name, char* version
     tColorGreen(); // color:green
     printf("Build\t--Over\n");
     textAttr_reset(); // reset text attributes
+    registerRemoveInfo(work_path, package_name, version); // register remove info(for remove)
 
     // 4. Clean operation
     cleanOperation(work_path, package_name, version);

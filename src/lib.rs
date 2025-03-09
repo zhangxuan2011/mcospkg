@@ -71,8 +71,7 @@ unsafe extern "C" {
 }
 
 // Then export it
-#[unsafe(no_mangle)]
-pub extern "C" fn installPkg(
+pub unsafe extern "C" fn install_pkg(
     package_path: *const c_char,
     package_name: *const c_char,
     version: *const c_char,
@@ -82,8 +81,7 @@ pub extern "C" fn installPkg(
     }
 }
 
-#[unsafe(no_mangle)]
-pub extern "C" fn removePkg(package_name: *const c_char) {
+pub unsafe extern "C" fn remove_pkg(package_name: *const c_char) {
     unsafe {
         removePackage(package_name)
     }

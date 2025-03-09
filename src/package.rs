@@ -21,16 +21,18 @@
 /// ```
 ///
 // Include some modules
+mod config;
 use clap::{Parser, Subcommand};
+use config::VERSION;
 use mcospkg::Color;
-use mcospkg::{installPkg, removePkg};
+use mcospkg::{install_pkg, remove_pkg};
 use std::ffi::CString;
 
 // Define args
 #[derive(Parser, Debug)]
 #[command(name = "mcospkg-package")]
 #[command(about = "The lite installer of mcospkg.")]
-#[command(version = "0.9.1 (Build 9125)")]
+#[command(version = VERSION)]
 struct Args {
     #[command(subcommand)]
     operation: Operations,
@@ -72,17 +74,22 @@ fn main() {
             let package_path = CString::new(package_path).unwrap();
             let package_version = CString::new(package_version).unwrap();
             let package_id = CString::new(package_id).unwrap();
-            let status = installPkg(
-                package_path.as_ptr(),
-                package_id.as_ptr(),
-                package_version.as_ptr(),
-            );
+            let status = unsafe {
+                install_pkg(
+                    package_path.as_ptr(),
+                    package_id.as_ptr(),
+                    package_version.as_ptr(),
+                )
+            };
             if status != 0 {
                 println!("{}: Installation failed with code: {}", color.error, status);
             }
         }
         Operations::Remove { package_id } => {
-            removePkg(package_id.as_ptr());
+            let package_id = CString::new(package_id).unwrap();
+            unsafe {
+                remove_pkg(package_id.as_ptr());
+            }
         }
     }
 }

@@ -31,7 +31,7 @@
 // Import some essential modules
 use colored::Colorize;
 use dialoguer::Input;
-use mcospkg::{download, readcfg, Color, installPkg};
+use mcospkg::{download, readcfg, Color, install_pkg};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
@@ -304,7 +304,7 @@ impl InstallData {
         // First, get package's version
         // Then, we need to ask user that if they want to install it
         println!(
-            "{}: The following packages is being installing:",
+            "{}: The following packages is being installed:",
             color.info
         );
         let len = self.fetch_index.len();
@@ -426,6 +426,7 @@ impl InstallData {
         // All sums are stored in "self.pkg_sha256sums_total",
         // so we'll get it first.
         println!("{}: Checking SHA256 sums...", color.info);
+        println!("========Results========");    // Begin message
 
         // Get each sha256sums
         let mut errtime: u32 = 0;
@@ -452,6 +453,7 @@ impl InstallData {
                 println!("{}", color.ok);
             }
         }
+        println!("======================"); // End message
 
         if errtime > 0 {
             println!("{}: {} packages does not pass the vaildating.", color.error, errtime);
@@ -496,7 +498,13 @@ impl InstallData {
             )
             .unwrap();
             let c_pkg_path = CString::new(pkg.to_str().unwrap()).unwrap();
-            let status = installPkg(c_pkg_path.as_ptr(), c_pkg_name.as_ptr(), c_version.as_ptr());
+            let status = unsafe {
+                install_pkg(
+                    c_pkg_path.as_ptr(), 
+                    c_pkg_name.as_ptr(), 
+                    c_version.as_ptr()
+                )
+            };
             if status != 0 {
                 println!("{}: The installation didn't exit normally.", color.error);
             }

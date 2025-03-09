@@ -36,6 +36,8 @@ mod main {
     pub mod install;
     pub mod remove;
 }
+mod config;
+use config::VERSION;
 use main::install;
 use main::remove;
 use clap::{Parser, Subcommand};
@@ -47,7 +49,7 @@ use mcospkg::Color;
 #[derive(Parser, Debug)]
 #[command(name = "mcospkg")]
 #[command(about = "A linux package-manager made for MinecraftOS (Main program)")]
-#[command(version = "0.9.1 (Build 9125)")]
+#[command(version = VERSION)]
 
 // Define argument lists
 struct Args {
@@ -100,7 +102,7 @@ enum Operations {
             long = "bypass",
             short = 'y',
             default_value_t = false,
-            help = "Specify it will not ask ANY questions"            )]
+            help = "Specify it will not ask ANY questions")]
         bypass_ask: bool,
     }
 }
