@@ -1,5 +1,5 @@
-use std::path::Path;
 use cc::Build;
+use std::path::Path;
 
 fn main() {
     let src_dir = Path::new("src");
@@ -27,7 +27,6 @@ fn main() {
     build.opt_level(3);
     build.out_dir(&out_dir);
     build.compile("pkgmgr");
-
 
     // Tell Rust to link against the pkgmgr library
     println!("cargo:rustc-link-search=native=target/lib");

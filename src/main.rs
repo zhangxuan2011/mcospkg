@@ -37,10 +37,10 @@ mod main {
     pub mod remove;
 }
 mod config;
+use clap::{Parser, Subcommand};
 use config::VERSION;
 use main::install;
 use main::remove;
-use clap::{Parser, Subcommand};
 use mcospkg::Color;
 
 // ========structs define area=========
@@ -63,18 +63,16 @@ enum Operations {
     #[command(about = "Install the package(s).")]
     Install {
         // Get packages
-        #[arg(
-            required = true,
-            help = "The package(s) you want to install"
-        )]
+        #[arg(required = true, help = "The package(s) you want to install")]
         packages: Vec<String>,
-        
+
         // And should we bypass asking
         #[arg(
             long = "bypass",
             short = 'y',
             default_value_t = false,
-            help = "Specify it will not ask ANY questions"            )]
+            help = "Specify it will not ask ANY questions"
+        )]
         bypass_ask: bool,
 
         // And should we reinstall it
@@ -91,10 +89,7 @@ enum Operations {
     #[command(about = "Remove the package(s).")]
     Remove {
         // Get packages
-        #[arg(
-            required = true,
-            help = "The package(s) you want to remove"
-        )]
+        #[arg(required = true, help = "The package(s) you want to remove")]
         packages: Vec<String>,
 
         // And should we bypass asking
@@ -102,17 +97,25 @@ enum Operations {
             long = "bypass",
             short = 'y',
             default_value_t = false,
-            help = "Specify it will not ask ANY questions")]
+            help = "Specify it will not ask ANY questions"
+        )]
         bypass_ask: bool,
-    }
+    },
 }
 
 // ========functions define area==========
 fn main() {
     let args = Args::parse();
     match args.operation {
-        Operations::Install {packages, bypass_ask, reinstall} => install(packages, bypass_ask, reinstall),
-        Operations::Remove {packages, bypass_ask} => remove(packages, bypass_ask),
+        Operations::Install {
+            packages,
+            bypass_ask,
+            reinstall,
+        } => install(packages, bypass_ask, reinstall),
+        Operations::Remove {
+            packages,
+            bypass_ask,
+        } => remove(packages, bypass_ask),
     };
 }
 

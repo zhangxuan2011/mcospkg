@@ -31,7 +31,7 @@
 ///
 // Import some modules
 use dialoguer::Input;
-use mcospkg::{get_installed_package_info, remove_pkg, Color, PkgInfoToml};
+use mcospkg::{Color, PkgInfoToml, get_installed_package_info, remove_pkg};
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::process::exit;

@@ -1,11 +1,11 @@
 // First, import some modules we need
 mod config;
-use config::VERSION;
 use clap::{Parser, Subcommand};
 use colored::Colorize;
-use mcospkg::{download, readcfg, Color};
-use std::process::{exit, Command};
+use config::VERSION;
+use mcospkg::{Color, download, readcfg};
 use std::io::Write;
+use std::process::{Command, exit};
 
 // And then we define the arguments
 #[derive(Parser, Debug)]
@@ -44,10 +44,10 @@ fn main() {
         Operations::Update => update(),
         Operations::Add { reponame, repourl } => {
             add(reponame, repourl);
-        },
+        }
         Operations::Delete { reponame } => {
             delete(reponame);
-        },
+        }
     }
 }
 
@@ -82,7 +82,10 @@ fn update() {
     // Second, create the dir if not exist
     // Dir we store database: /etc/mcospkg/database/remote
     if !std::path::Path::new("/etc/mcospkg/database/remote").exists() {
-        println!("{}: Creating directory /etc/mcospkg/database/remote...", color.info);
+        println!(
+            "{}: Creating directory /etc/mcospkg/database/remote...",
+            color.info
+        );
         match Command::new("mkdir")
             .arg("-p")
             .arg("/etc/mcospkg/database/remote")
@@ -117,18 +120,23 @@ fn add(reponame: String, repourl: String) {
         .write(true)
         .append(true)
         .open("/etc/mcospkg/repo.conf");
-    match repofile {    // See if the file is opened
-        Err(e) => { // If not, print the color.error and exit
+    match repofile {
+        // See if the file is opened
+        Err(e) => {
+            // If not, print the color.error and exit
             eprintln!("{}: {}", color.error, e);
             exit(2);
-        },
+        }
         Ok(mut repofile) => {
-            match repofile.write_all(format!("{} = {}\n", reponame, repourl).as_bytes()) {    // Write the file
-                Err(e) => {     // If not, print the color.error and exit
+            match repofile.write_all(format!("{} = {}\n", reponame, repourl).as_bytes()) {
+                // Write the file
+                Err(e) => {
+                    // If not, print the color.error and exit
                     eprintln!("{}: {}", color.error, e);
                     exit(2);
-                },
-                Ok(_) => {  // If yes, print the message
+                }
+                Ok(_) => {
+                    // If yes, print the message
                     println!(
                         "{}: Added repository name \"{}\" to the configuration file.",
                         "ok".green().bold(),

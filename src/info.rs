@@ -9,8 +9,8 @@
 // First, we need to import some modules:
 mod config;
 use clap::Parser; // To parse argument(info-type)
-use config::VERSION;
 use colored::Colorize; // To show colorful text(in var "error")
+use config::VERSION;
 use mcospkg::Color;
 
 // And, set up the parser information:
@@ -35,12 +35,22 @@ fn main() {
 
     // And, let's check the condition:
     match args.info_type.as_str() {
-        "all" => println!("{}\n\n{} in this program, Repository URLS is {};\n\nExecutable files are: \n\tmcospkg, \n\tmcospkg-mirror, \n\tmcospkg-info\n\n", introduce(), os_license(), repo_site()),
+        "all" => println!(
+            "{}\n\n{} in this program, Repository URLS is {};\n\nExecutable files are: \n\tmcospkg, \n\tmcospkg-mirror, \n\tmcospkg-info\n\n",
+            introduce(),
+            os_license(),
+            repo_site()
+        ),
         "os-license" => println!("{}", os_license()),
-        "repo-site" => println!("{}",repo_site()),
+        "repo-site" => println!("{}", repo_site()),
         "usage" => println!(""),
         "introduce" => println!("{}", introduce()),
-        &_ => println!("{}: unknown options: {}\n{}: Supports arguments are: os-license, repo-site, all", color.error, args.info_type, "tip".bold().green()),
+        &_ => println!(
+            "{}: unknown options: {}\n{}: Supports arguments are: os-license, repo-site, all",
+            color.error,
+            args.info_type,
+            "tip".bold().green()
+        ),
     }
 }
 
