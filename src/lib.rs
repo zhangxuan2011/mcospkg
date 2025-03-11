@@ -27,13 +27,14 @@ pub struct PkgInfoToml {
 pub struct Color {
     /// The color of the message
     /// This uses in lots of file, so we merged them here.
-    pub error: ColoredString, // The error message
-    pub tip: ColoredString,  // The tip message
-    pub info: ColoredString, // The info message
-    pub done: ColoredString, // The done message
-    pub note: ColoredString, // The note message
-    pub ok: ColoredString,   // The OK message
-    pub no: ColoredString,   // The No message
+    pub error: ColoredString,   // The error message
+    pub tip: ColoredString,     // The tip message
+    pub info: ColoredString,    // The info message
+    pub done: ColoredString,    // The done message
+    pub note: ColoredString,    // The note message
+    pub ok: ColoredString,      // The OK message
+    pub no: ColoredString,      // The No message
+    pub warning: ColoredString, // Thw warning message
 }
 
 // Implement this struct
@@ -47,6 +48,7 @@ impl Color {
             note: "note".yellow().bold(),
             ok: "OK".green().bold(),
             no: "No".red().bold(),
+            warning: "warning".yellow().bold(),
         }
     }
 }
