@@ -31,7 +31,7 @@
 // Import some essential modules
 use colored::Colorize;
 use dialoguer::Input;
-use mcospkg::{download, readcfg, Color, install_pkg};
+use mcospkg::{Color, download, install_pkg, readcfg};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
@@ -74,7 +74,7 @@ pub struct InstallData {
     pkgindex_total: Vec<HashMap<String, PkgInfo>>, // The package index
     baseon_total: Vec<HashMap<String, Vec<String>>>, // The package baseon
     pkg_version_index: Vec<String>,   // The package version
-    pkg_sha256sums_index: Vec<String>,  // The package sha256
+    pkg_sha256sums_index: Vec<String>, // The package sha256
     pkgindex: HashMap<String, PkgInfo>, // The package index
     fetch_index: Vec<String>,         // The package to fetch
     file_index: Vec<String>,          // The package to fetch
@@ -105,7 +105,7 @@ impl InstallData {
         // First, load configuration and get its HashMap
         match readcfg() {
             Err(e) => {
-                println!("{}", color.error);
+                println!("{}", color.failed);
                 println!("{}: {}", color.error, e);
                 println!(
                     "{}: Consider using this format to write to that file:\n\t{}",
@@ -127,7 +127,7 @@ impl InstallData {
             // If index not exist, just quit
             if !Path::new(&repopath).exists() {
                 if errtime == 0 {
-                    println!("{}", color.error);
+                    println!("{}", color.failed);
                 }
                 println!(
                     "{}: Repository index \"{}\" not found",
@@ -178,7 +178,7 @@ impl InstallData {
         // Main of this stage - Compare user input ("pkglist") and pkgindex
         for pkg in &pkglist {
             if !self.pkgindex.contains_key(pkg) {
-                println!("{}", color.error);
+                println!("{}", color.failed);
                 println!(
                     "{}: Package \"{}\" not found in any repositories.",
                     color.error, pkg
@@ -214,7 +214,7 @@ impl InstallData {
         for pkg in &need_dependencies {
             for dep in &baseon[pkg] {
                 if !self.pkgindex.contains_key(dep) {
-                    println!("{}", color.error);
+                    println!("{}", color.failed);
                     println!(
                         "{}: Invaild package dependencies: \"{}\" (not found in package index)",
                         color.error, dep
@@ -237,9 +237,8 @@ impl InstallData {
         println!("{}", color.done);
     }
 
-    pub fn step3_check_installed(&mut self, reinstall: bool, pkglist: Vec<String>) {
+    pub fn step3_check_installed(&mut self, reinstall: bool) {
         let color = Color::new();
-        print!("{}: Checking if the package is installed... ", color.info);
 
         // Stage 3: Check if the package is installed in the system
         // NOTE: If the "reinstall" = true, pass this stage
@@ -253,7 +252,7 @@ impl InstallData {
         // First, read it
         let binding = fs::read_to_string("/etc/mcospkg/database/packages.toml")
             .unwrap_or_else(|err| {
-                println!("{}", color.error);
+                println!("{}", color.failed);
                 println!(
                     "{}: Cannot read \"/etc/mcospkg/database/packages.toml\": {}",
                     color.error, err
@@ -264,50 +263,46 @@ impl InstallData {
         let installed_packages = binding.split("\n").collect::<Vec<&str>>();
 
         // Then check
-        let mut errtime = 0;
-        for pkg in &pkglist {
-            let check_pkg = format!("[{}]", &pkg);
+        for pkg in self.fetch_index.clone() {
+            let check_pkg = format!("[{}]", &pkg); // Convert with the TOML format
             if !reinstall {
                 for installed_pkg in installed_packages.clone() {
                     if installed_pkg == check_pkg {
-                        if errtime == 0 {
-                            println!("{}", color.error);
-                        }
                         println!(
-                            "{}: Package \"{}\" has installed, cannot reinstall it without \"reinstall\" mode",
-                            color.error,
-                            pkg,
+                            "{}: Package \"{}\" has installed, but it's not reinstall mode now, ignored.",
+                            color.warning, pkg,
                         );
-                        errtime += 1;
+                        if let Some(index) = self.fetch_index.iter().position(|x| *x == *pkg) {
+                            self.fetch_index.remove(index);
+                        }
                     } else {
                         continue;
                     }
                 }
             }
         }
-
-        if errtime > 0 {
-            println!(
-                "{}: To reinstall it, please append an argument \"{}\" after the command.",
-                color.note,
-                "-r".cyan()
-            );
-            exit(1);
-        }
-        println!("{}", color.done);
     }
 
     pub fn step4_download(&mut self, bypass_ask: bool) {
         let color = Color::new();
+        let len = self.fetch_index.len();
 
         // Stage 4: Download the package
-        // First, get package's version
+        // If len == 0, it means that no package will be installed.
+        // Have a check :0
+        if len == 0 {
+            println!("{}: No any package will be installed.", color.error);
+            println!(
+                "{}: Maybe some packages has been ignored? If yes, add the argument \"{}\".",
+                color.tip,
+                "-r".cyan()
+            );
+            exit(1)
+        }
+
         // Then, we need to ask user that if they want to install it
-        println!(
-            "{}: The following packages is being installed:",
-            color.info
-        );
-        let len = self.fetch_index.len();
+        println!("{}: The following packages is being installed:", color.info);
+
         for (i, pkg) in self.fetch_index.clone().into_iter().enumerate() {
             // Get each package's version
             let pkg_version = self.pkgindex.get(&pkg).unwrap().version.clone();
@@ -417,7 +412,7 @@ impl InstallData {
             self.file_index.push(pkg_path.clone());
         }
     }
-    
+
     pub fn step5_check_sums(&mut self) {
         let color = Color::new();
 
@@ -426,7 +421,7 @@ impl InstallData {
         // All sums are stored in "self.pkg_sha256sums_total",
         // so we'll get it first.
         println!("{}: Checking SHA256 sums...", color.info);
-        println!("========Results========");    // Begin message
+        println!("========Results========"); // Begin message
 
         // Get each sha256sums
         let mut errtime: u32 = 0;
@@ -437,7 +432,11 @@ impl InstallData {
             .zip(self.fetch_index.clone().into_iter())
             .clone()
         {
-            print!("{} \"{}\": ", "Vaildating package".cyan().bold(), pkg.clone());
+            print!(
+                "{} \"{}\": ",
+                "Vaildating package".cyan().bold(),
+                pkg.clone()
+            );
             // First, get the file's sha256 intergrity.
             // Get the file name
             let file = self.pkgindex.get(&pkg).unwrap().filename.clone();
@@ -456,7 +455,10 @@ impl InstallData {
         println!("======================"); // End message
 
         if errtime > 0 {
-            println!("{}: {} packages does not pass the vaildating.", color.error, errtime);
+            println!(
+                "{}: {} packages does not pass the vaildating.",
+                color.error, errtime
+            );
             exit(1)
         }
     }
@@ -471,7 +473,7 @@ impl InstallData {
         // So, we need to use the C library to install the package
         // First, we need to convert the string to CString
         let mut c_file_index: Vec<CString> = Vec::new(); // Record the index, we'll use it
-    
+
         // Convert the string to CString
         for filepath in &self.file_index {
             let c_pkg = CString::new(filepath.clone()).unwrap();
@@ -499,11 +501,7 @@ impl InstallData {
             .unwrap();
             let c_pkg_path = CString::new(pkg.to_str().unwrap()).unwrap();
             let status = unsafe {
-                install_pkg(
-                    c_pkg_path.as_ptr(), 
-                    c_pkg_name.as_ptr(), 
-                    c_version.as_ptr()
-                )
+                install_pkg(c_pkg_path.as_ptr(), c_pkg_name.as_ptr(), c_version.as_ptr())
             };
             if status != 0 {
                 println!("{}: The installation didn't exit normally.", color.error);

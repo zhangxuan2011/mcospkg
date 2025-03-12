@@ -28,12 +28,14 @@ pub struct Color {
     /// The color of the message
     /// This uses in lots of file, so we merged them here.
     pub error: ColoredString, // The error message
-    pub tip: ColoredString,  // The tip message
-    pub info: ColoredString, // The info message
-    pub done: ColoredString, // The done message
-    pub note: ColoredString, // The note message
-    pub ok: ColoredString,   // The OK message
-    pub no: ColoredString,   // The No message
+    pub tip: ColoredString,     // The tip message
+    pub info: ColoredString,    // The info message
+    pub done: ColoredString,    // The done message
+    pub failed: ColoredString,  // The Failed Message
+    pub note: ColoredString,    // The note message
+    pub ok: ColoredString,      // The OK message
+    pub no: ColoredString,      // The No message
+    pub warning: ColoredString, // Thw warning message
 }
 
 // Implement this struct
@@ -44,9 +46,11 @@ impl Color {
             tip: "tip".green().bold(),
             info: "info".blue().bold(),
             done: "Done".green().bold(),
+            failed: "Failed".red().bold(),
             note: "note".yellow().bold(),
             ok: "OK".green().bold(),
             no: "No".red().bold(),
+            warning: "warning".yellow().bold(),
         }
     }
 }
@@ -54,7 +58,7 @@ impl Color {
 // The error code defintions
 pub enum ErrorCode {
     Skipped = 1, // For some option skipped
-    Other = -1 // Other error (more error code later)
+    Other = -1,  // Other error (more error code later)
 }
 
 // This will pub use the C function.
@@ -63,11 +67,9 @@ unsafe extern "C" {
     fn installPackage(
         package_path: *const c_char,
         package_name: *const c_char,
-        version: *const c_char
+        version: *const c_char,
     ) -> c_int;
-    fn removePackage(
-        package_name: *const c_char
-    );
+    fn removePackage(package_name: *const c_char);
 }
 
 // Then export it
@@ -76,15 +78,11 @@ pub unsafe extern "C" fn install_pkg(
     package_name: *const c_char,
     version: *const c_char,
 ) -> c_int {
-    unsafe {
-        installPackage(package_path, package_name, version)
-    }
+    unsafe { installPackage(package_path, package_name, version) }
 }
 
 pub unsafe extern "C" fn remove_pkg(package_name: *const c_char) {
-    unsafe {
-        removePackage(package_name)
-    }
+    unsafe { removePackage(package_name) }
 }
 
 /// This function will read the configuration file and return a HashMap
