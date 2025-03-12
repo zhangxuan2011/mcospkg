@@ -237,7 +237,7 @@ impl InstallData {
         println!("{}", color.done);
     }
 
-    pub fn step3_check_installed(&mut self, reinstall: bool, pkglist: Vec<String>) {
+    pub fn step3_check_installed(&mut self, reinstall: bool) {
         let color = Color::new();
 
         // Stage 3: Check if the package is installed in the system
@@ -263,7 +263,7 @@ impl InstallData {
         let installed_packages = binding.split("\n").collect::<Vec<&str>>();
 
         // Then check
-        for pkg in &pkglist {
+        for pkg in self.fetch_index.clone() {
             let check_pkg = format!("[{}]", &pkg); // Convert with the TOML format
             if !reinstall {
                 for installed_pkg in installed_packages.clone() {

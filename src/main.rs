@@ -138,7 +138,7 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
     install_data.step2_check_deps(pkglist.clone());
 
     // Stage 3: Check if package is installed
-    install_data.step3_check_installed(reinstall, pkglist.clone());
+    install_data.step3_check_installed(reinstall);
 
     // Stage 4: Download the package
     install_data.step4_download(bypass_ask);
