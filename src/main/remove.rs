@@ -126,15 +126,15 @@ impl RemoveData {
 
         if !bypass_ask {
             let input: String = Input::new()
-                .with_prompt("\nDo you want to continue? (y/n)")
+                .with_prompt("\nProceed to remove these packages? (y/n)")
                 .interact_text()
                 .unwrap();
             if input != "y" && input != "Y" {
-                println!("{}: User rejected the uninstallation request", color.error);
+                println!("{}: User rejected the uninstallation request.", color.error);
                 exit(1);
             }
         } else {
-            println!("\nADo you proceed to remove these packages? (y/n): y");
+            println!("\nProceed to remove these packages? (y/n): y");
         }
     }
 

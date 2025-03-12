@@ -269,7 +269,7 @@ impl InstallData {
                 for installed_pkg in installed_packages.clone() {
                     if installed_pkg == check_pkg {
                         println!(
-                            "{}: Package \"{}\" has installed, but it's not reinstall mode now, ignored",
+                            "{}: Package \"{}\" has installed, but it's not reinstall mode now, ignored.",
                             color.warning, pkg,
                         );
                         if let Some(index) = self.fetch_index.iter().position(|x| *x == *pkg) {
