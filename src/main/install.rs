@@ -263,7 +263,6 @@ impl InstallData {
         let installed_packages = binding.split("\n").collect::<Vec<&str>>();
 
         // Then check
-        let mut errtime = 0;
         for pkg in &pkglist {
             let check_pkg = format!("[{}]", &pkg); // Convert with the TOML format
             if !reinstall {
@@ -276,20 +275,11 @@ impl InstallData {
                         if let Some(index) = self.fetch_index.iter().position(|x| *x == *pkg) {
                             self.fetch_index.remove(index);
                         }
-                        errtime += 1;
                     } else {
                         continue;
                     }
                 }
             }
-        }
-
-        if errtime > 0 {
-            println!(
-                "{}: To reinstall it, please append an argument \"{}\" after the command.",
-                color.tip,
-                "-r".cyan()
-            );
         }
     }
 
@@ -304,7 +294,7 @@ impl InstallData {
             println!("{}: No any package will be installed.", color.error);
             println!(
                 "{}: Maybe some packages has been ignored? If yes, add the argument \"{}\".",
-                color.warning,
+                color.tip,
                 "-r".cyan()
             );
             exit(1)
