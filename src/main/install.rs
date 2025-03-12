@@ -265,12 +265,12 @@ impl InstallData {
         // Then check
         let mut errtime = 0;
         for pkg in &pkglist {
-            let check_pkg = format!("[{}]", &pkg);  // Convert with the TOML format
+            let check_pkg = format!("[{}]", &pkg); // Convert with the TOML format
             if !reinstall {
                 for installed_pkg in installed_packages.clone() {
                     if installed_pkg == check_pkg {
                         println!(
-                            "{}: Package \"{}\" has installed, but it's not install mode now, ignored",
+                            "{}: Package \"{}\" has installed, but it's not reinstall mode now, ignored",
                             color.warning, pkg,
                         );
                         if let Some(index) = self.fetch_index.iter().position(|x| *x == *pkg) {
@@ -295,12 +295,24 @@ impl InstallData {
 
     pub fn step4_download(&mut self, bypass_ask: bool) {
         let color = Color::new();
+        let len = self.fetch_index.len();
 
         // Stage 4: Download the package
-        // First, get package's version
+        // If len == 0, it means that no package will be installed.
+        // Have a check :0
+        if len == 0 {
+            println!("{}: No any package will be installed.", color.error);
+            println!(
+                "{}: Maybe some packages has been ignored? If yes, add the argument \"{}\".",
+                color.warning,
+                "-r".cyan()
+            );
+            exit(1)
+        }
+
         // Then, we need to ask user that if they want to install it
         println!("{}: The following packages is being installed:", color.info);
-        let len = self.fetch_index.len();
+
         for (i, pkg) in self.fetch_index.clone().into_iter().enumerate() {
             // Get each package's version
             let pkg_version = self.pkgindex.get(&pkg).unwrap().version.clone();
