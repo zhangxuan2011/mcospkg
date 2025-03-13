@@ -31,7 +31,7 @@
 ///
 // Import some modules
 use dialoguer::Input;
-use mcospkg::{Color, PkgInfoToml, get_installed_package_info, remove_pkg};
+use mcospkg::{get_installed_package_info, remove_pkg, Color, PkgInfoToml};
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::process::exit;
@@ -69,7 +69,7 @@ impl RemoveData {
         self.package = get_installed_package_info();
     }
 
-    pub fn step2_check_deps(&mut self, pkglist: Vec<String>) {
+    pub fn step2_check_deps(&mut self, mut pkglist: Vec<String>) {
         let color = Color::new();
 
         // Stage 2: Check the dependencies
@@ -81,9 +81,12 @@ impl RemoveData {
 
         // Make sure the specified the package is exist in that file
         // Check the HashMap's key is ok.
-        let mut errtime = 0;
+        let mut errtime: u32 = 0;
         for package in &pkglist {
             if !package_keys.contains(package) {
+                if errtime == 0 {
+                    println!("{}", color.failed)
+                }
                 println!(
                     "{}: Package \"{}\" is not installed, so we have no idea (T_T)",
                     color.error, package
@@ -102,15 +105,38 @@ impl RemoveData {
 
         // Read the vector "dependencies"
         let mut dependencies: Vec<String> = Vec::new();
+        errtime = 0; // Reset error times
         for pkg in &pkglist {
             for dep in &self.package[pkg].dependencies {
-                dependencies.push(dep.clone());
+                // Maybe some invaild dependencies will came out,
+                // we need to block it.
+                if !package_keys.contains(dep) {
+                    // Only print Failed for once
+                    if errtime == 0 {
+                        println!("{}", color.failed)
+                    }
+                    // Then tell user
+                    println!(
+                        "{}: Invaild dependencies \"{}\" in package \"{}\".",
+                        color.error, dep, pkg
+                    );
+                    errtime += 1;
+                } else {
+                    dependencies.push(dep.clone());
+                }
             }
+        }
+        if errtime > 0 {
+            println!(
+                "{}: Perhaps you modified the package information?",
+                color.tip
+            );
+            exit(1)
         }
         println!("{}", color.done);
 
         // Merge them
-        self.delete_pkgs.append(&mut pkglist.clone());
+        self.delete_pkgs.append(&mut pkglist);
         self.delete_pkgs.append(&mut dependencies);
     }
 
