@@ -31,10 +31,10 @@
 // Import some essential modules
 use colored::Colorize;
 use dialoguer::Input;
-use mcospkg::{Color, download, install_pkg, readcfg};
+use mcospkg::{download, install_pkg, readcfg, Color};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ffi::CString;
 use std::fmt;
 use std::fs::{self, File};
@@ -202,7 +202,8 @@ impl InstallData {
         for (i, _) in self.baseon_total.iter().enumerate() {
             baseon.extend(self.baseon_total[i].clone());
         }
-        // Generate a vector to record the packages that need dependencies
+        let mut visited = HashSet::new(); // Will record the deps of checked.
+                                          // Generate a vector to record the packages that need dependencies
         let mut need_dependencies: Vec<String> = Vec::new(); // This will record them
         for pkg in &pkglist {
             if baseon.contains_key(pkg) {
@@ -220,18 +221,27 @@ impl InstallData {
                         color.error, dep
                     );
                     exit(1)
+                } else {
+                    self.check_all_dependencies(dep, &mut visited);
+                    self.fetch_index.push(dep.clone());
                 }
             }
         }
 
         // Finally, add them to the "fetch index"
+        let mut added_pkgs = HashSet::new(); //  Record the package append to fetch_index
         for pkg in &pkglist {
-            self.fetch_index.push(pkg.clone());
+            if added_pkgs.insert(pkg.clone()) {
+                self.fetch_index.push(pkg.clone());
+            }
         }
 
         for pkg in &need_dependencies {
             for dep in &baseon[pkg] {
-                self.fetch_index.push(dep.clone());
+                if added_pkgs.insert(dep.clone()) {
+                    self.fetch_index.push(dep.clone());
+                    self.check_all_dependencies(dep, &mut added_pkgs);
+                }
             }
         }
         println!("{}", color.done);
@@ -239,6 +249,7 @@ impl InstallData {
 
     pub fn step3_check_installed(&mut self, reinstall: bool) {
         let color = Color::new();
+        let mut processed_pkgs = HashSet::new();
 
         // Stage 3: Check if the package is installed in the system
         // NOTE: If the "reinstall" = true, pass this stage
@@ -268,10 +279,12 @@ impl InstallData {
             if !reinstall {
                 for installed_pkg in installed_packages.clone() {
                     if installed_pkg == check_pkg {
-                        println!(
-                            "{}: Package \"{}\" has installed, but it's not reinstall mode now, ignored.",
-                            color.warning, pkg,
-                        );
+                        if processed_pkgs.insert(pkg.clone()) {
+                            println!(
+                                "{}: Package \"{}\" has installed, but it's not reinstall mode now, ignored.",
+                                color.warning, pkg,
+                            );
+                        }
                         if let Some(index) = self.fetch_index.iter().position(|x| *x == *pkg) {
                             self.fetch_index.remove(index);
                         }
@@ -520,5 +533,39 @@ impl InstallData {
         hasher.update(&buffer);
         let result = hasher.finalize();
         Ok(hex::encode(result))
+    }
+
+    fn check_all_dependencies(&mut self, dep: &str, added_pkgs: &mut HashSet<String>) {
+        // Check is the deps has processed
+        if added_pkgs.contains(dep) {
+            return;
+        }
+        added_pkgs.insert(dep.to_string());
+
+        // Get the next deps
+        let sub_deps: Vec<String> = self
+            .baseon_total
+            .iter()
+            .flat_map(|m| m.get(dep).map(|v| v.clone()).unwrap_or_default())
+            .collect();
+        for sub_dep in sub_deps {
+            if !self.pkgindex.contains_key(&sub_dep) {
+                let color = Color::new();
+                println!("{}", color.failed);
+                println!(
+                    "{}: Dependency \"{}\" of \"{}\" has an invalid sub - dependency \"{}\".",
+                    color.error,
+                    dep,
+                    self.fetch_index.last().unwrap(),
+                    sub_dep
+                );
+                exit(1);
+            } else {
+                if added_pkgs.insert(sub_dep.clone()) {
+                    self.fetch_index.push(sub_dep.clone());
+                }
+                self.check_all_dependencies(&sub_dep, added_pkgs);
+            }
+        }
     }
 }

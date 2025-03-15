@@ -32,7 +32,7 @@
 // Import some modules
 use dialoguer::Input;
 use mcospkg::{get_installed_package_info, remove_pkg, Color, PkgInfoToml};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ffi::CString;
 use std::process::exit;
 
@@ -78,15 +78,13 @@ impl RemoveData {
         for (key, _) in self.package.iter() {
             package_keys.push(key.clone());
         }
+        let mut visited = HashSet::new();
 
         // Make sure the specified the package is exist in that file
         // Check the HashMap's key is ok.
         let mut errtime: u32 = 0;
         for package in &pkglist {
             if !package_keys.contains(package) {
-                if errtime == 0 {
-                    println!("{}", color.failed)
-                }
                 println!(
                     "{}: Package \"{}\" is not installed, so we have no idea (T_T)",
                     color.error, package
@@ -107,24 +105,14 @@ impl RemoveData {
         let mut dependencies: Vec<String> = Vec::new();
         errtime = 0; // Reset error times
         for pkg in &pkglist {
-            for dep in &self.package[pkg].dependencies {
-                // Maybe some invaild dependencies will came out,
-                // we need to block it.
-                if !package_keys.contains(dep) {
-                    // Only print Failed for once
-                    if errtime == 0 {
-                        println!("{}", color.failed)
-                    }
-                    // Then tell user
-                    println!(
-                        "{}: Invaild dependencies \"{}\" in package \"{}\".",
-                        color.error, dep, pkg
-                    );
-                    errtime += 1;
-                } else {
-                    dependencies.push(dep.clone());
-                }
-            }
+            self.check_all_dependencies(
+                pkg,
+                &package_keys,
+                &mut dependencies,
+                &mut errtime,
+                &mut visited,
+                &color,
+            );
         }
         if errtime > 0 {
             println!(
@@ -171,6 +159,38 @@ impl RemoveData {
             unsafe {
                 remove_pkg(package_name.as_ptr());
             };
+        }
+    }
+
+    // Check the dependencies completely
+    fn check_all_dependencies(
+        &self,
+        pkg: &str,
+        package_keys: &Vec<String>,
+        dependencies: &mut Vec<String>,
+        errtime: &mut u32,
+        visited: &mut HashSet<String>,
+        color: &Color,
+    ) {
+        if visited.contains(pkg) {
+            return;
+        }
+        visited.insert(pkg.to_string());
+
+        for dep in &self.package[pkg].dependencies {
+            if !package_keys.contains(dep) {
+                if *errtime == 0 {
+                    println!("{}", color.failed);
+                }
+                println!(
+                    "{}: Invalid dependencies \"{}\" in package \"{}\".",
+                    color.error, dep, pkg
+                );
+                *errtime += 1;
+            } else {
+                dependencies.push(dep.clone());
+                self.check_all_dependencies(dep, package_keys, dependencies, errtime, visited, color);
+            }
         }
     }
 }
