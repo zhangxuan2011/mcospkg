@@ -1,5 +1,3 @@
-use mcospkg::Color;
-use std::error::Error;
 /// ## Information
 /// Position: src/mirror/add.rs
 /// Usage: The install library of src/mirror.rs
@@ -14,6 +12,8 @@ use std::error::Error;
 /// The usage of this file is in src/main.rs.
 /// Line 111-126 is the usage of this file.
 /// (NOTE: The `src/main.rs` maybe update so that the lines may change.)
+use mcospkg::Color;
+use std::error::Error;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::process::exit;
