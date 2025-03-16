@@ -223,7 +223,6 @@ impl InstallData {
                     exit(1)
                 } else {
                     self.check_all_dependencies(dep, &mut visited);
-                    self.fetch_index.push(dep.clone());
                 }
             }
         }

@@ -5,4 +5,4 @@
 /// Options later.
 
 /// The version, a &str.
-pub const VERSION: &str = "v0.9.1 (Build 9144)";
+pub const VERSION: &str = "v0.9.1 (Build 9145)";
