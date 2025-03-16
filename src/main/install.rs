@@ -31,7 +31,7 @@
 // Import some essential modules
 use colored::Colorize;
 use dialoguer::Input;
-use mcospkg::{download, install_pkg, readcfg, Color};
+use mcospkg::{Color, download, install_pkg, readcfg};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
@@ -203,7 +203,7 @@ impl InstallData {
             baseon.extend(self.baseon_total[i].clone());
         }
         let mut visited = HashSet::new(); // Will record the deps of checked.
-                                          // Generate a vector to record the packages that need dependencies
+        // Generate a vector to record the packages that need dependencies
         let mut need_dependencies: Vec<String> = Vec::new(); // This will record them
         for pkg in &pkglist {
             if baseon.contains_key(pkg) {

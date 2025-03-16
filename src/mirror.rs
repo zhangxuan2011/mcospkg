@@ -1,11 +1,13 @@
 // First, import some modules we need
 mod config;
+mod mirror {
+    pub mod update;
+    pub mod add;
+}
 use clap::{Parser, Subcommand};
-use colored::Colorize;
 use config::VERSION;
-use mcospkg::{Color, download, readcfg};
-use std::io::Write;
-use std::process::{Command, exit};
+use mirror::update::UpdateData;
+use mirror::add::AddData;
 
 // And then we define the arguments
 #[derive(Parser, Debug)]
@@ -52,100 +54,29 @@ fn main() {
 }
 
 fn update() {
-    let color = Color::new();
+    // Initialize the data
+    let mut update_data = UpdateData::new();
 
-    // First, we read the configuration file
-    let repoindex: Vec<(String, String)>;
-    match readcfg() {
-        Err(e) => {
-            eprintln!("{}: {}", color.error, e);
-            println!(
-                "{}: Consider using this format to write to that file:\n\t{}",
-                "note".bold().green(),
-                "[reponame] = [repourl]".cyan()
-            );
-            exit(2);
-        }
-        Ok(repoconf) => {
-            repoindex = repoconf.into_iter().map(|(k, v)| (k, v)).collect();
-        }
-    }
+    // Then do the steps
+    update_data.step1_readcfg();
 
-    // Fill the repo_msgs
-    let mut repo_msgs: Vec<&'static str> = Vec::new();
-    for (reponame, _) in repoindex.clone() {
-        let msg = format!("{}", reponame);
-        let msg = Box::leak(msg.into_boxed_str());
-        repo_msgs.push(msg);
-    }
+    update_data.step2_fill_msgs();
 
-    // Second, create the dir if not exist
-    // Dir we store database: /etc/mcospkg/database/remote
-    if !std::path::Path::new("/etc/mcospkg/database/remote").exists() {
-        println!(
-            "{}: Creating directory /etc/mcospkg/database/remote...",
-            color.info
-        );
-        match Command::new("mkdir")
-            .arg("-p")
-            .arg("/etc/mcospkg/database/remote")
-            .status()
-        {
-            Ok(_) => {}
-            Err(e) => {
-                eprintln!("{}: {}", color.error, e);
-                exit(2);
-            }
-        }
-    }
+    update_data.step3_create_dirs();
 
-    // Third, download the file
-    println!("{}: Updating index file...", color.info);
-    for ((reponame, repourl), msg) in repoindex.into_iter().zip(repo_msgs.into_iter()) {
-        if let Err(errmsg) = download(
-            format!("{}/PKGINDEX.json", repourl),
-            format!("/etc/mcospkg/database/remote/{}.json", reponame),
-            msg,
-        ) {
-            eprintln!("{}: {}", color.error, errmsg);
-        }
-    }
+    update_data.step4_download_index();
+
+    // And completed!
 }
 
 fn add(reponame: String, repourl: String) {
-    let color = Color::new();
+    // Initialize it
+    let mut add_data = AddData::new();
 
-    // First, open the repo file
-    let repofile = std::fs::OpenOptions::new()
-        .write(true)
-        .append(true)
-        .open("/etc/mcospkg/repo.conf");
-    match repofile {
-        // See if the file is opened
-        Err(e) => {
-            // If not, print the color.error and exit
-            eprintln!("{}: {}", color.error, e);
-            exit(2);
-        }
-        Ok(mut repofile) => {
-            match repofile.write_all(format!("{} = {}\n", reponame, repourl).as_bytes()) {
-                // Write the file
-                Err(e) => {
-                    // If not, print the color.error and exit
-                    eprintln!("{}: {}", color.error, e);
-                    exit(2);
-                }
-                Ok(_) => {
-                    // If yes, print the message
-                    println!(
-                        "{}: Added repository name \"{}\" to the configuration file.",
-                        "ok".green().bold(),
-                        reponame,
-                    );
-                }
-            }
-        }
-    }
+    // Then do a step
+    let _ = add_data.step_matches(reponame, repourl);
+
+    // And...Done
 }
 
 fn delete(_reponame: String) {}

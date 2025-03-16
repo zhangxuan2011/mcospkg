@@ -31,7 +31,7 @@
 ///
 // Import some modules
 use dialoguer::Input;
-use mcospkg::{get_installed_package_info, remove_pkg, Color, PkgInfoToml};
+use mcospkg::{Color, PkgInfoToml, get_installed_package_info, remove_pkg};
 use std::collections::{HashMap, HashSet};
 use std::ffi::CString;
 use std::process::exit;
@@ -189,7 +189,14 @@ impl RemoveData {
                 *errtime += 1;
             } else {
                 dependencies.push(dep.clone());
-                self.check_all_dependencies(dep, package_keys, dependencies, errtime, visited, color);
+                self.check_all_dependencies(
+                    dep,
+                    package_keys,
+                    dependencies,
+                    errtime,
+                    visited,
+                    color,
+                );
             }
         }
     }
