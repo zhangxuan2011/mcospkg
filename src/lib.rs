@@ -1,5 +1,6 @@
-// These functions is from "src/library" before. but there's only 1 function in each file.
-// So I'll move them to here.
+//! These functions is from "src/library" before. but there's only 1 function in each file.
+//!
+//! So I'll move them to here.
 
 // Import the modules
 use colored::{ColoredString, Colorize};
@@ -14,16 +15,17 @@ use std::path::Path;
 use std::process::exit;
 
 // =====toml define area=====
-// This defines the toml format (/etc/mcospkg/database/package.toml)
-// This is for uninstall only
+/// This defines the toml format (/etc/mcospkg/database/package.toml)
+///
+/// This is for uninstall only
 #[derive(Debug, Deserialize, Serialize)]
 pub struct PkgInfoToml {
     pub dependencies: Vec<String>,
     pub version: String,
 }
 
-// In most codes, we usually meet the colorful message. So
-// we moved them in a struct.
+/// In most codes, we usually meet the colorful message. So
+/// we moved them in a struct.
 pub struct Color {
     /// The color of the message
     /// This uses in lots of file, so we merged them here.
@@ -61,34 +63,71 @@ pub enum ErrorCode {
     Other = -1,  // Other error (more error code later)
 }
 
-// This will pub use the C function.
-// Import it first
+
+// Extern C func
 unsafe extern "C" {
     fn installPackage(
         package_path: *const c_char,
         package_name: *const c_char,
-        version: *const c_char,
+        version: *const c_char
     ) -> c_int;
-    fn removePackage(package_name: *const c_char);
+    fn removePackage(
+        package_name: *const c_char
+    );
 }
 
 // Then export it
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn install_pkg(
     package_path: *const c_char,
     package_name: *const c_char,
     version: *const c_char,
 ) -> c_int {
-    unsafe { installPackage(package_path, package_name, version) }
+    unsafe {
+        installPackage(package_path, package_name, version)
+    }
 }
 
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn remove_pkg(package_name: *const c_char) {
-    unsafe { removePackage(package_name) }
+    unsafe {
+        removePackage(package_name)
+    }
+}
+
+/// This structure defines the standard package info, and we will
+/// install the package here.
+///
+/// # Field Explain
+///
+///  - id: The package ID name of the package (e.g. "python");
+///  - path: The path of the package (e.g. /path/to/package.tar.xz);
+///  - version: The version of the package (e.g. 0.1.0)
+///
+/// # Example
+/// ```rust
+/// let package = Package {
+///     id: String::from("python"),
+///     path: String::from("/path/to/python.tar.xz"),
+///     version: String::from("3.12.8"),
+/// };
+/// // more options...
+///
+/// ```
+pub struct Package {
+    pub id: String,
+    pub path: String,
+    pub version: String,
 }
 
 /// This function will read the configuration file and return a HashMap
+///
 /// The HaShMap's key is the repository name, and the value is the repository URL
+///
 /// If the configuration file is not found, it will return an error
+///
 /// If the configuration file is not in the correct format, it will return an error, too.
+///
 /// The format is: `[reponame] = [repourl]`
 pub fn readcfg() -> Result<HashMap<String, String>, Error> {
     // First, read the configuration
@@ -122,8 +161,11 @@ pub fn readcfg() -> Result<HashMap<String, String>, Error> {
 }
 
 /// This function will download a file from a URL and save it to a file
+///
 /// The URL is the URL of the file
+///
 /// The save is the path of the file to save
+///
 /// The msg is the message to show in the progress bar
 pub fn download(url: String, save: String, msg: &'static str) -> Result<(), Error> {
     let mut resp =

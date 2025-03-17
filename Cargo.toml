@@ -25,6 +25,12 @@ toml = "0.8.20"
 [build-dependencies]
 cc = "1.2.10"
 
+# And library define area.
+# This library can uses in C and Rust.
+[lib]
+name = "mcospkg"
+crate-type = ["cdylib", "rlib"]
+
 # This is the binary file define area
 # The file format: mcospkg-xxx
 # Filename: src/xxx.rs
