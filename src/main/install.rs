@@ -31,12 +31,10 @@
 // Import some essential modules
 use colored::Colorize;
 use dialoguer::Input;
-use mcospkg::{Color, download, install_pkg, readcfg};
+use mcospkg::{download, readcfg, rust_install_pkg, Color, Package};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
-use std::ffi::CString;
-use std::fmt;
 use std::fs::{self, File};
 use std::io::{self, Read};
 use std::path::Path;
@@ -49,13 +47,6 @@ struct PkgInfo {
     filename: String,
     version: String,
     sha256sums: String,
-}
-
-// This implete the trait "Display", we'll use it later.
-impl fmt::Display for PkgInfo {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} (version: {})", self.filename, self.version)
-    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -203,7 +194,7 @@ impl InstallData {
             baseon.extend(self.baseon_total[i].clone());
         }
         let mut visited = HashSet::new(); // Will record the deps of checked.
-        // Generate a vector to record the packages that need dependencies
+                                          // Generate a vector to record the packages that need dependencies
         let mut need_dependencies: Vec<String> = Vec::new(); // This will record them
         for pkg in &pkglist {
             if baseon.contains_key(pkg) {
@@ -446,8 +437,8 @@ impl InstallData {
         {
             print!(
                 "{} \"{}\": ",
-                "Vaildating package".cyan().bold(),
-                pkg.clone()
+                "Vaildating package".bold(),
+                pkg.cyan().bold().clone()
             );
             // First, get the file's sha256 intergrity.
             // Get the file name
@@ -480,44 +471,38 @@ impl InstallData {
         println!("{}: Installing packages... ", color.info);
 
         // Stage 6: Install the package
-        // My friend, Xiaokuai, uses C to write the install library.
+        // My friend, Xiaokuai, Helps me to write the install library.
         // I'll thank him at here :)
-        // So, we need to use the C library to install the package
-        // First, we need to convert the string to CString
-        let mut c_file_index: Vec<CString> = Vec::new(); // Record the index, we'll use it
+        // So, we need to use hsi library to install the package
+        // First, convert them to struct "Package".
 
-        // Convert the string to CString
-        for filepath in &self.file_index {
-            let c_pkg = CString::new(filepath.clone()).unwrap();
-            c_file_index.push(c_pkg);
-        }
-        // Convert version_total to CString
-        let mut c_version_total: Vec<CString> = Vec::new();
-        for version in &self.pkg_version_index {
-            let c_version = CString::new(version.clone()).unwrap();
-            c_version_total.push(c_version);
-        }
-        // Then, we need to use the C library to install the package
-        let version_and_file = c_file_index.iter().zip(c_version_total.iter());
-        for (pkg, c_version) in version_and_file {
-            let c_pkg_name = CString::new(
-                pkg.to_str()
-                    .unwrap()
-                    .split("/")
-                    .last()
-                    .unwrap()
-                    .split("-")
-                    .next()
-                    .unwrap(),
-            )
-            .unwrap();
-            let c_pkg_path = CString::new(pkg.to_str().unwrap()).unwrap();
-            let status = unsafe {
-                install_pkg(c_pkg_path.as_ptr(), c_pkg_name.as_ptr(), c_version.as_ptr())
+        // Make 3 vectors as 1 vector
+        let total: Vec<(String, String, String)> = self
+            .fetch_index
+            .clone()
+            .into_iter()
+            .zip(self.file_index.clone())
+            .zip(self.pkg_version_index.clone())
+            .filter_map(|((a, b), c)| Some((a, b, c)))
+            .collect();
+        
+        // Then convert
+        let mut packages: Vec<Package> = Vec::new();
+        for (pkgname, pkgpath, pkgver) in total {
+            // Parse it to struct "Package" first
+            let package = Package {
+                id: pkgname,
+                path: pkgpath,
+                version: pkgver,
             };
-            if status != 0 {
-                println!("{}: The installation didn't exit normally.", color.error);
-            }
+
+            // Then make them as a vector type Vec<Package>.
+            packages.push(package);
+        }
+
+        let status = rust_install_pkg(packages);
+        if status != 0 {
+            println!("{}: The installation didn't exit normally.", color.error);
         }
     }
 
