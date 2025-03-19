@@ -44,11 +44,11 @@ enum Operations {
         #[arg(required = true, help = "The package ID")]
         package_id: String,
 
-        #[arg(required = true, help = "The version of the package")]
-        package_version: String,
-
         #[arg(required = true, help = "The package path")]
         package_path: String,
+
+        #[arg(required = true, help = "The version of the package")]
+        package_version: String,
     },
 
     // The remove option
