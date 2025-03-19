@@ -6,10 +6,10 @@
 mod pkgmgr;
 use colored::{ColoredString, Colorize};
 use indicatif::{ProgressBar, ProgressStyle};
-use libc::{c_char, c_int};
 use reqwest::blocking::get;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::ffi::{c_char, c_int, CStr};
 use std::fs::{self, File};
 use std::io::{Error, ErrorKind, Read, Write};
 use std::path::Path;
@@ -68,19 +68,57 @@ pub enum ErrorCode {
     Other = -1,  // Other error (more error code later)
 }
 
-// Then export it
+fn convert_to_string(c_char_ptr: *const c_char) -> String {
+    // Convert *const c_char to CStr first
+    let c_str = unsafe { CStr::from_ptr(c_char_ptr) };
+    // Convert CStr to String
+    let result: String = match c_str.to_str() {
+        Ok(s) => s.to_string(),
+        Err(_) => String::new(),
+    };
+    result
+}
+
+// Export function for C
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn c_install_pkg(
+    package_id: *const c_char,
     package_path: *const c_char,
-    package_name: *const c_char,
     version: *const c_char,
 ) -> c_int {
-    // TODO: Implement it
-    0
+    // Convert the ptr to String first
+    let package_id_rs = convert_to_string(package_path);
+    let package_path_rs = convert_to_string(package_id);
+    let version_rs = convert_to_string(version);
+
+    // Make them to "Vec<Package>"
+    // P.S: "Package" is a struct
+
+    // To struct first
+    let package = Package {
+        id: package_id_rs,
+        path: package_path_rs,
+        version: version_rs,
+    };
+
+    // Then to the Vector
+    let packages: Vec<Package> = vec![package];
+
+    // Ask to the install function finally
+    rust_install_pkg(packages)
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn c_remove_pkg(package_name: *const c_char) {}
+pub unsafe extern "C" fn c_remove_pkg(package_name: *const c_char) -> c_int {
+    // Convert to String first
+    let package_name_rs = convert_to_string(package_name);
+
+    // Append it to a vector
+    let packages: Vec<String> = vec![package_name_rs];
+
+    // Then use that function
+    rust_remove_pkg(packages)
+}
 
 /// This structure defines the standard package info, and we will
 /// install the package here.
@@ -101,6 +139,7 @@ pub unsafe extern "C" fn c_remove_pkg(package_name: *const c_char) {}
 /// // more options...
 ///
 /// ```
+#[derive(Debug)]
 pub struct Package {
     pub id: String,
     pub path: String,

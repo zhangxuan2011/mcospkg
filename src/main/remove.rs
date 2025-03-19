@@ -31,9 +31,8 @@
 ///
 // Import some modules
 use dialoguer::Input;
-use mcospkg::{Color, PkgInfoToml, get_installed_package_info, remove_pkg};
+use mcospkg::{Color, PkgInfoToml, get_installed_package_info, rust_remove_pkg};
 use std::collections::{HashMap, HashSet};
-use std::ffi::CString;
 use std::process::exit;
 
 // ========structs define area=========
@@ -153,12 +152,16 @@ impl RemoveData {
     }
 
     pub fn step4_remove(&self) {
+        let color = Color::new();
+
         // Stage 4: Remove the package
-        for delete_pkg in &self.delete_pkgs {
-            let package_name = CString::new(delete_pkg.as_str()).unwrap();
-            unsafe {
-                remove_pkg(package_name.as_ptr());
-            };
+        let mut packages: Vec<String> = Vec::new();
+        for delete_pkg in self.delete_pkgs.clone() {
+            packages.push(delete_pkg);
+        }
+        let status = rust_remove_pkg(packages);
+        if status != 0 {
+            println!("{}: The uninstallation didn't exit normally.", color.error);
         }
     }
 

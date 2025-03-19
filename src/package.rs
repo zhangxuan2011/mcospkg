@@ -24,9 +24,8 @@
 mod config;
 use clap::{Parser, Subcommand};
 use config::VERSION;
-use mcospkg::Color;
-use mcospkg::{install_pkg, remove_pkg};
-use std::ffi::CString;
+use mcospkg::{Color, Package};
+use mcospkg::{rust_install_pkg, rust_remove_pkg};
 
 // Define args
 #[derive(Parser, Debug)]
@@ -71,24 +70,26 @@ fn main() {
             package_version,
             package_path,
         } => {
-            let package_path = CString::new(package_path).unwrap();
-            let package_version = CString::new(package_version).unwrap();
-            let package_id = CString::new(package_id).unwrap();
-            let status = unsafe {
-                install_pkg(
-                    package_path.as_ptr(),
-                    package_id.as_ptr(),
-                    package_version.as_ptr(),
-                )
+            // Make it to a struct
+            let package = Package {
+                id: package_id,
+                path: package_path,
+                version: package_version,
             };
+            
+            // Then make it to a Vec<Package>
+            let packages: Vec<Package> = vec![package];
+
+            // Finally use this function
+            let status = rust_install_pkg(packages);
             if status != 0 {
                 println!("{}: Installation failed with code: {}", color.error, status);
             }
         }
         Operations::Remove { package_id } => {
-            let package_id = CString::new(package_id).unwrap();
-            unsafe {
-                remove_pkg(package_id.as_ptr());
+            let packages: Vec<String> = vec![package_id];
+            let status = rust_remove_pkg(packages);
+            if status != 0 {                                                      println!("{}: Uninstallation failed with code: {}", color.error, status);
             }
         }
     }
