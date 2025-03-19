@@ -3,6 +3,7 @@
 //! So I'll move them to here.
 
 // Import the modules
+mod pkgmgr;
 use colored::{ColoredString, Colorize};
 use indicatif::{ProgressBar, ProgressStyle};
 use libc::{c_char, c_int};
@@ -13,6 +14,10 @@ use std::fs::{self, File};
 use std::io::{Error, ErrorKind, Read, Write};
 use std::path::Path;
 use std::process::exit;
+
+// Public area
+pub use pkgmgr::install_pkg as rust_install_pkg;
+pub use pkgmgr::remove_pkg as rust_remove_pkg;
 
 // =====toml define area=====
 /// This defines the toml format (/etc/mcospkg/database/package.toml)
@@ -63,37 +68,19 @@ pub enum ErrorCode {
     Other = -1,  // Other error (more error code later)
 }
 
-
-// Extern C func
-unsafe extern "C" {
-    fn installPackage(
-        package_path: *const c_char,
-        package_name: *const c_char,
-        version: *const c_char
-    ) -> c_int;
-    fn removePackage(
-        package_name: *const c_char
-    );
-}
-
 // Then export it
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn install_pkg(
+pub unsafe extern "C" fn c_install_pkg(
     package_path: *const c_char,
     package_name: *const c_char,
     version: *const c_char,
 ) -> c_int {
-    unsafe {
-        installPackage(package_path, package_name, version)
-    }
+    // TODO: Implement it
+    0
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn remove_pkg(package_name: *const c_char) {
-    unsafe {
-        removePackage(package_name)
-    }
-}
+pub unsafe extern "C" fn c_remove_pkg(package_name: *const c_char) {}
 
 /// This structure defines the standard package info, and we will
 /// install the package here.
