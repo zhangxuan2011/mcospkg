@@ -19,7 +19,9 @@ reqwest = { version = "0.12.12", features = ["blocking"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.135"
 sha2 = "0.10.8"
+tar = "0.4.44"
 toml = "0.8.20"
+xz2 = "0.1.7"
 
 # The deps for building C libs
 [build-dependencies]
