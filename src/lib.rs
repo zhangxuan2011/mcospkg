@@ -87,8 +87,8 @@ pub unsafe extern "C" fn c_install_pkg(
     version: *const c_char,
 ) -> c_int {
     // Convert the ptr to String first
-    let package_id_rs = convert_to_string(package_path);
-    let package_path_rs = convert_to_string(package_id);
+    let package_id_rs = convert_to_string(package_id);
+    let package_path_rs = convert_to_string(package_path);
     let version_rs = convert_to_string(version);
 
     // Make them to "Vec<Package>"
