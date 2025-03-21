@@ -33,7 +33,7 @@ mkdir -p cache/mcospkg
 cd ../..
 
 # Then in lib
-cp lib/libpkgmgr.a intergrated/lib
+cp release/libmcospkg.so intergrated/lib
 
 # And, that's completed!
 echo "Done! project now in target/intergrated"
@@ -53,6 +53,7 @@ fi
 echo "=====OUTPUT====="
 sudo mkdir -p $PREFIX/bin
 sudo cp -rv target/intergrated/bin/* $PREFIX/bin
+sudo cp -rv target/intergrated/lib/* $PREFIX/lib
 sudo cp -rv target/intergrated/* $PREFIX
 echo "=====END OF OUTPUT====="
 echo "Installation completed."
