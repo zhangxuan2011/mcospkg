@@ -22,10 +22,6 @@ tar = "0.4.44"
 toml = "0.8.20"
 xz2 = "0.1.7"
 
-# The deps for building C libs
-[build-dependencies]
-cc = "1.2.10"
-
 # And library define area.
 # This library can uses in C and Rust.
 [lib]
@@ -51,5 +47,6 @@ path = "src/package.rs"
 [profile.release]
 lto = true
 strip = true
+codegen-units = 1
 opt-level = "z"
 panic = "abort"
