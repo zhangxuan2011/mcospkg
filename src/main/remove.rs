@@ -33,6 +33,7 @@
 use dialoguer::Input;
 use mcospkg::{Color, PkgInfoToml, get_installed_package_info, rust_remove_pkg};
 use std::collections::{HashMap, HashSet};
+use std::io::{self, Write};
 use std::process::exit;
 
 // ========structs define area=========
@@ -99,6 +100,7 @@ impl RemoveData {
 
         // Then let's see see...
         print!("{}: Resolving dependencies... ", color.info);
+        io::stdout().flush().unwrap();
 
         // Read the vector "dependencies"
         let mut dependencies: Vec<String> = Vec::new();

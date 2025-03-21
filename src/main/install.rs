@@ -36,7 +36,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
 use std::fs::{self, File};
-use std::io::{self, Read};
+use std::io::{self, Read, Write};
 use std::path::Path;
 use std::process::exit;
 
@@ -91,6 +91,7 @@ impl InstallData {
     pub fn step1_explain_pkg(&mut self, pkglist: Vec<String>) {
         let color = Color::new();
         print!("{}: Reading package index... ", color.info);
+        io::stdout().flush().unwrap();
 
         // Stage 1: Explain the package
         // First, load configuration and get its HashMap
@@ -183,6 +184,7 @@ impl InstallData {
     pub fn step2_check_deps(&mut self, pkglist: Vec<String>) {
         let color = Color::new();
         print!("{}: Checking package dependencies... ", color.info);
+        io::stdout().flush().unwrap();
 
         // Stage 2: Check the packages' dependencies
         // To check it, we need to use the baseon_total
@@ -440,6 +442,7 @@ impl InstallData {
                 "Vaildating package".bold(),
                 pkg.cyan().bold().clone()
             );
+            io::stdout().flush().unwrap();
             // First, get the file's sha256 intergrity.
             // Get the file name
             let file = self.pkgindex.get(&pkg).unwrap().filename.clone();
