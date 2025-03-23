@@ -81,7 +81,7 @@ fn convert_to_string(c_char_ptr: *const c_char) -> String {
 
 // Export function for C
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn c_install_pkg(
+pub extern "C" fn c_install_pkg(
     package_id: *const c_char,
     package_path: *const c_char,
     version: *const c_char,
@@ -109,7 +109,7 @@ pub unsafe extern "C" fn c_install_pkg(
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn c_remove_pkg(package_name: *const c_char) -> c_int {
+pub extern "C" fn c_remove_pkg(package_name: *const c_char) -> c_int {
     // Convert to String first
     let package_name_rs = convert_to_string(package_name);
 
