@@ -16,10 +16,13 @@ use colored::Colorize;
 use mcospkg::{Color, download, readcfg};
 use std::process::{Command, exit};
 
+// The type-alias
+type Message = std::borrow::Cow<'static, str>;
+
 // Define the public data
 pub struct UpdateData {
     repoindex: Vec<(String, String)>,
-    repo_msgs: Vec<&'static str>,
+    repo_msgs: Vec<Message>,
 }
 
 // Then add some public method
@@ -55,8 +58,7 @@ impl UpdateData {
     pub fn step2_fill_msgs(&mut self) {
         // Fill the repo_msgs
         for (reponame, _) in self.repoindex.clone() {
-            let msg = format!("{}", reponame);
-            let msg = Box::leak(msg.into_boxed_str());
+            let msg: Message = reponame.into();
             self.repo_msgs.push(msg);
         }
     }

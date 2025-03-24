@@ -15,6 +15,9 @@ use std::io::{Error, ErrorKind, Read, Write};
 use std::path::Path;
 use std::process::exit;
 
+// Type annotions area
+type Message = std::borrow::Cow<'static, str>;
+
 // Public area
 pub use pkgmgr::install_pkg as rust_install_pkg;
 pub use pkgmgr::remove_pkg as rust_remove_pkg;
@@ -139,7 +142,7 @@ pub extern "C" fn c_remove_pkg(package_name: *const c_char) -> c_int {
 /// // more options...
 ///
 /// ```
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Package {
     pub id: String,
     pub path: String,
@@ -193,7 +196,7 @@ pub fn readcfg() -> Result<HashMap<String, String>, Error> {
 /// The save is the path of the file to save
 ///
 /// The msg is the message to show in the progress bar
-pub fn download(url: String, save: String, msg: &'static str) -> Result<(), Error> {
+pub fn download(url: String, save: String, msg: Message) -> Result<(), Error> {
     let mut resp =
         get(url).map_err(|e| Error::new(ErrorKind::Other, format!("Cannot fetch file: {}", e)))?;
     let mut file = File::create(save).map_err(|e| {
