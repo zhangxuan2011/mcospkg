@@ -40,6 +40,9 @@ use std::io::{self, Read, Write};
 use std::path::Path;
 use std::process::exit;
 
+// Type annotion area
+type Message = std::borrow::Cow<'static, str>;
+
 // =====json define area=====
 // Define the pkg color.info
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -367,11 +370,10 @@ impl InstallData {
         // So, we need to download the package file and store it in the cache path
         // How to download? use the library we've imported - download.
         // Define something
-        let mut pkg_msgs: Vec<&'static str> = Vec::new(); // This will record the message of downloading
+        let mut pkg_msgs: Vec<Message> = Vec::new(); // This will record the message of downloading
 
         for pkgname in &self.fetch_index {
-            let pkg_msg = format!("{}", pkgname);
-            let pkg_msg = Box::leak(pkg_msg.into_boxed_str());
+            let pkg_msg: Message = pkgname.clone().into();
             pkg_msgs.push(pkg_msg);
         }
 
@@ -397,7 +399,7 @@ impl InstallData {
 
             // Download the package
             let mut errtime: u32 = 0;
-            if let Err(e) = download(pkg_url, pkg_path.clone(), &msg) {
+            if let Err(e) = download(pkg_url, pkg_path.clone(), msg) {
                 println!("{}: {}", color.error, e);
                 errtime += 1;
             }
