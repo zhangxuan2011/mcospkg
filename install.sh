@@ -51,6 +51,13 @@ touch database/packages.toml    # To save the installed package's info
 }
 
 # Check which option should we do in different condition.
+
+if [ ! -d target/release ]; then
+    echo "Error: The target/intergrated not exist!"
+    echo "Please run \"cargo build --release\" to build it."
+    exit 1
+fi
+
 if [ ! -d target/intergrated ]; then
     # If the intergrated not exist, intergrate first
     echo "Note: You have not intergrate it yet, so we do it first"
