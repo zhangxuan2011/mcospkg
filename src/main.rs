@@ -146,8 +146,11 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
     // Stage 5: Check sha256sums integrity
     install_data.step5_check_sums();
 
-    // Stage 6: Install the package
-    install_data.step6_install();
+    // Stage 6: Extract the package
+    install_data.step6_extract();
+
+    // Stage 7: Install the package
+    install_data.step7_install();
 
     // And, that's complete!
 }

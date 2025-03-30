@@ -7,13 +7,16 @@ mod pkgmgr;
 use colored::{ColoredString, Colorize};
 use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::blocking::get;
+use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::ffi::{c_char, c_int, CStr};
 use std::fs::{self, File};
 use std::io::{Error, ErrorKind, Read, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::exit;
+use tar::Archive;
+use xz2::read::XzDecoder;
 
 // Type annotions area
 type Message = std::borrow::Cow<'static, str>;
@@ -98,14 +101,11 @@ pub extern "C" fn c_install_pkg(
     // P.S: "Package" is a struct
 
     // To struct first
-    let package = Package {
-        id: package_id_rs,
-        path: package_path_rs,
-        version: version_rs,
-    };
-
-    // Then to the Vector
-    let packages: Vec<Package> = vec![package];
+    let packages = Package::new(
+        package_id_rs,
+        package_path_rs,
+        version_rs
+    ).to_vec();
 
     // Ask to the install function finally
     rust_install_pkg(packages)
@@ -134,6 +134,8 @@ pub extern "C" fn c_remove_pkg(package_name: *const c_char) -> c_int {
 ///
 /// # Example
 /// ```rust
+/// use mcospkg::Package;
+///
 /// let package = Package {
 ///     id: String::from("python"),
 ///     path: String::from("/path/to/python.tar.xz"),
@@ -142,16 +144,62 @@ pub extern "C" fn c_remove_pkg(package_name: *const c_char) -> c_int {
 /// // more options...
 ///
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Package {
     pub id: String,
     pub path: String,
     pub version: String,
 }
 
+// Implement it
+impl Package {
+    /// The initializer of this struct
+    pub fn new(id: String, path: String, version: String) -> Self {
+        Self { id, path, version }
+    }
+
+    /// This will help you to convert this struct to a vector.
+    ///
+    /// NOTE: Make sure it is mutable if you want to change
+    /// its value.
+    pub fn to_vec(&self) -> Vec<Self> {
+        let vector = vec![self.clone()];
+        vector
+    }
+    
+    /// If you have 3 vectors, and they are all corresponding
+    /// to each other one by one, you can use this to convert
+    /// them to one vector.
+    ///
+    /// NOTE: It returns a vector, please iterate it if you
+    /// only want one!!
+    pub fn from_vec(
+        id_vec: Vec<String>,
+        path_vec: Vec<String>,
+        version_vec: Vec<String>
+    ) -> Vec<Self> {
+        // First, make 3 to 1.
+        let total: Vec<(String, String, String)> = id_vec
+            .clone()
+            .into_iter()
+            .zip(path_vec.clone())
+            .zip(version_vec.clone())
+            .filter_map(|((a, b), c)| Some((a, b, c)))
+            .collect();
+
+        // Then iterate it
+        let mut vector = Vec::new();
+        for (id, path, version) in total {
+            let package = Package::new(id, path, version);
+            vector.push(package);
+        }
+        vector
+    }
+}
+
 /// This function will read the configuration file and return a HashMap
 ///
-/// The HaShMap's key is the repository name, and the value is the repository URL
+/// The HashMap's key is the repository name, and the value is the repository URL
 ///
 /// If the configuration file is not found, it will return an error
 ///
@@ -267,3 +315,44 @@ pub fn get_installed_package_info() -> HashMap<String, PkgInfoToml> {
     }); // Main parsing code
     package
 }
+
+/// This function can help you to extract the package to the 
+/// temp dir.
+///
+/// It will return a String, and it is the output dir.
+///
+/// This will in use in some steps.
+pub fn extract(input_path: &str) -> Result<String, Box<dyn std::error::Error>> {
+    // Extract first
+    let output_dir = create_dir()?;
+    let input_file = File::open(input_path)?;
+    let decoder = XzDecoder::new(input_file);
+    let mut archive = Archive::new(decoder);
+
+    let output_path = Path::new(&output_dir);
+    archive.unpack(output_path)?;
+
+    // Convert to String
+    let path_str = output_dir.to_string_lossy().into_owned();
+
+    Ok(path_str)
+}
+
+// Create the temp dir to extract only
+fn create_dir() -> Result<PathBuf, std::io::Error> {
+    let mut rng = rand::rng();
+    let mut random_suffix = String::new();
+    let charset = "0123456789";
+    for _ in 0..6 {
+        let random_index = rng.random_range(0..charset.len());
+        random_suffix.push(charset.chars().nth(random_index).unwrap());
+    }
+
+    let mut target_dir = PathBuf::from("/tmp");
+    target_dir.push(format!("mcospkg{}", random_suffix));
+
+    fs::create_dir(&target_dir)?;
+
+    Ok(target_dir)
+}
+

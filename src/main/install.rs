@@ -469,39 +469,33 @@ impl InstallData {
         }
     }
 
-    pub fn step6_install(&mut self) {
+    pub fn step6_extract(&mut self) {
+        let color = Color::new();
+        println!("{}: Extracting packages... ", color.info);
+
+        // Stage 6: Extract the package
+        // In the installation, we needs to extract the packages, is it [doge]
+        // and we needs to extract it to a defined place,
+        // Such as /var/cache/mcospkg (dafault)
+        //
+    }
+
+    pub fn step7_install(&mut self) {
         let color = Color::new();
         println!("{}: Installing packages... ", color.info);
 
-        // Stage 6: Install the package
+        // Stage 7: Install the package
         // My friend, Xiaokuai, Helps me to write the install library.
         // I'll thank him at here :)
         // So, we need to use hsi library to install the package
         // First, convert them to struct "Package".
 
         // Make 3 vectors as 1 vector
-        let total: Vec<(String, String, String)> = self
-            .fetch_index
-            .clone()
-            .into_iter()
-            .zip(self.file_index.clone())
-            .zip(self.pkg_version_index.clone())
-            .filter_map(|((a, b), c)| Some((a, b, c)))
-            .collect();
-        
-        // Then convert
-        let mut packages: Vec<Package> = Vec::new();
-        for (pkgname, pkgpath, pkgver) in total {
-            // Parse it to struct "Package" first
-            let package = Package {
-                id: pkgname,
-                path: pkgpath,
-                version: pkgver,
-            };
-
-            // Then make them as a vector type Vec<Package>.
-            packages.push(package);
-        }
+        let packages = Package::from_vec(
+            self.fetch_index.clone(),
+            self.file_index.clone(),
+            self.pkg_version_index.clone()
+        );
 
         let status = rust_install_pkg(packages);
         if status != 0 {

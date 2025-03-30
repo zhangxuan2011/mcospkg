@@ -71,14 +71,11 @@ fn main() {
             package_path,
         } => {
             // Make it to a struct
-            let package = Package {
-                id: package_id,
-                path: package_path,
-                version: package_version,
-            };
-            
-            // Then make it to a Vec<Package>
-            let packages: Vec<Package> = vec![package];
+            let packages = Package::new(
+                package_id,
+                package_version,
+                package_path,
+            ).to_vec();
 
             // Finally use this function
             let status = rust_install_pkg(packages);

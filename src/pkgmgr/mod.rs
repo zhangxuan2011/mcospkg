@@ -20,7 +20,7 @@
 ///
 /// // Install package
 /// let package = Package {
-///     id: name,
+///     id: name.clone(),
 ///     path,
 ///     version,
 /// };  // Convert to the struct "Package"
