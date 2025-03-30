@@ -1,8 +1,7 @@
 ## Producers
 
-### C producers
 XiaoKuai <rainyhowcool@outlook.com>
-
+zhangxuan2011 <zx20110412@outlook.com>
 
 ## Description
 
@@ -12,8 +11,6 @@ Why create this? Let me explain it:
 
 ## Structures
 
-### Rust structure
-
 `main/` (directory): The library of `main.rs`;
 
 `main.rs`: The main file (This exports the binary file `mcospkg`);
@@ -22,15 +19,17 @@ Why create this? Let me explain it:
 
 `info.rs`: Exports the binary `mcospkg-info`;
 
+`mirror/` (directory): The library of `mirror.rs`;
+
 `mirror.rs`: Exports the binary `mcospkg-mirror`;
 
-### C structure
+`pkgmgr/` (directory): The install & remove library.
 
+## Build
 
-`ExtractLinux.c`: The file that extracts the package in Linux;
+To build this project, you just need to run:
 
-`pmio.c`: 
-
-`TextAttributes.c`: The text attributes;
-
-`main.c`: The main file;
+```bash
+cargo build --release -j8   # Build this project.
+sudo ../install.sh  # Install it, in "src" directory.
+```
