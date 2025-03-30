@@ -169,13 +169,29 @@ if (status == 0) {
     printf("The software package uninstallation fails\n");
 }
 ```
- 
+
+# How to Compile?
+
+You have written the relevant code, and surely it needs to be compiled. But how should you do it? You may not know what the compilation command is either.
+
+Well, think about it. If you have looked at the  install.sh  file (installation script) under this project, you will find that there is a copy command in it. If you know the copy command, don't you know how to do the linking? [doge] [doge]
+
+~~(At this moment, you might be saying: I really want to curse the author *****)~~
+
+Since you know how to do the linking, you should also think of using this command:
+
+```bash
+gcc your_code.c -lmcospkg -o your_code        # Make sure the `-lmcospkg` option is specified.
+```
+
+Of course, the  `libmcospkg.so`  is installed under `$(PREFIX)/lib` . If you have specified a different installation path, remember to add the  `-L <path>`  option as well!
+
 # Notes
  
 1. When using these functions, ensure the accuracy of the paths. Whether it is the path of the installation package (package_path) or the management path of the software package itself, an incorrect path may lead to the failure of function execution. For example, the installation package cannot be found or the software package to be uninstalled cannot be located.
  
 2. When calling these functions in the C language, pay attention to memory management. Since character pointers are passed, make sure there is no memory leak after use. For example, if the string memory allocated for package_id, package_path, etc. through malloc, it needs to be freed by calling free when it is no longer in use.
  
-3. Since these functions involve the installation and uninstallation operations of software packages, there may be some permission requirements. In the actual operating environment, ensure that the program runs with sufficient permissions. Otherwise, the installation or uninstallation may fail due to insufficient permissions.
+3. Since these functions involve the installation and uninstallation operations of software packages, there may be some permission requirements. In the actual operating environment, ensure that the program runs with sufficient permissions ( Such as using `sudo` privilege ). Otherwise, the installation or uninstallation may fail due to insufficient permissions.
  
 4. For the processing of the version number, it must strictly follow the specified format. As mentioned above, the version number can only contain numbers and decimal points. Check carefully when entering the version number to avoid problems in installation or other version-related operations due to incorrect version number formats.
