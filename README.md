@@ -7,9 +7,9 @@ This project uses in MinecraftOS, a **linux** operating system for Minecraft pla
 This project imagine by a 12-year-old boy (THE SAME PERSON) at first, cause there's less package manager by Chinese, so as a Chinese young man and developer, I, and my team, will take this mission on.
 
 ## Extension Documents
-For more documents, please look at the directory `Doc/`
+For more documents, please look at the directory `docs/`
 
-如果你是中国人🇨🇳, 那么我们贴心地准备了翻译(在`Doc/Chinese`下)
+如果你是中国人🇨🇳, 那么我们贴心地准备了翻译(在`docs/Chinese`下)
 
 ## Build & Install
 If you have installed mcospkg, just run this command:
