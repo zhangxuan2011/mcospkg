@@ -85,7 +85,7 @@ impl RemoveData {
         let mut errtime: u32 = 0;
         for package in &pkglist {
             if !package_keys.contains(package) {
-                println!(
+                eprintln!(
                     "{}: Package \"{}\" is not installed, so we have no idea (T_T)",
                     color.error, package
                 );
@@ -94,7 +94,7 @@ impl RemoveData {
         }
 
         if errtime > 0 {
-            println!("{}: {} errors occurred, terminated.", color.error, errtime);
+            eprintln!("{}: {} errors occurred, terminated.", color.error, errtime);
             exit(1)
         }
 
@@ -145,7 +145,7 @@ impl RemoveData {
                 .interact_text()
                 .unwrap();
             if input != "y" && input != "Y" {
-                println!("{}: User rejected the uninstallation request.", color.error);
+                eprintln!("{}: User rejected the uninstallation request.", color.error);
                 exit(1);
             }
         } else {
@@ -162,8 +162,9 @@ impl RemoveData {
             packages.push(delete_pkg);
         }
         let status = rust_remove_pkg(packages);
-        if status != 0 {
-            println!("{}: The uninstallation didn't exit normally.", color.error);
+        if let Err(error) = status {
+            eprintln!("{}: The uninstallation has received an error, \"{:?}\".", color.error, error);
+            exit(error.into())
         }
     }
 

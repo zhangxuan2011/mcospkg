@@ -1,13 +1,13 @@
 // First, import some modules we need
 mod config;
 mod mirror {
-    pub mod update;
     pub mod add;
+    pub mod update;
 }
 use clap::{Parser, Subcommand};
 use config::VERSION;
-use mirror::update::UpdateData;
 use mirror::add::AddData;
+use mirror::update::UpdateData;
 
 // And then we define the arguments
 #[derive(Parser, Debug)]

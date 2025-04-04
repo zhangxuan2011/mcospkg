@@ -42,7 +42,7 @@ impl UpdateData {
         match readcfg() {
             Err(e) => {
                 eprintln!("{}: {}", color.error, e);
-                println!(
+                eprintln!(
                     "{}: Consider using this format to write to that file:\n\t{}",
                     "note".bold().green(),
                     "[reponame] = [repourl]".cyan()

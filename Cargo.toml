@@ -9,6 +9,7 @@ license = "GPL-3.0"
 repository = "https://github.com/zhangxuan2011/mcospkg"
 
 [dependencies]
+chrono = "0.4.40"
 clap = { version = "4.5.23", features = ["derive"] }
 colored = "3.0.0"
 dialoguer = "0.11.0"

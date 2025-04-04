@@ -6,11 +6,11 @@
 mod pkgmgr;
 use colored::{ColoredString, Colorize};
 use indicatif::{ProgressBar, ProgressStyle};
-use reqwest::blocking::get;
 use rand::prelude::*;
+use reqwest::blocking::get;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::ffi::{c_char, c_int, CStr};
+use std::ffi::{CStr, c_char, c_int};
 use std::fs::{self, File};
 use std::io::{Error, ErrorKind, Read, Write};
 use std::path::{Path, PathBuf};
@@ -68,12 +68,26 @@ impl Color {
     }
 }
 
-// The error code defintions
+/// The error code defintions, 
+#[derive(Debug)]
 pub enum ErrorCode {
-    Skipped = 1, // For some option skipped
-    Other = -1,  // Other error (more error code later)
+    FileNotFound = 1,
+    InvaildPackage = 2,
+    PermissionDenied = 3,
+    CleanDirError = 4,
+    ChangeDirError = 5,
+    ExecuteError = 6,
+    Other = -1,
+    // More error codes...
 }
 
+impl From<ErrorCode> for c_int {
+    fn from(error: ErrorCode) -> c_int {
+        error as c_int
+    }
+}
+
+/// Convert c_char to String.
 fn convert_to_string(c_char_ptr: *const c_char) -> String {
     // Convert *const c_char to CStr first
     let c_str = unsafe { CStr::from_ptr(c_char_ptr) };
@@ -102,13 +116,21 @@ pub extern "C" fn c_install_pkg(
 
     // To struct first
     let packages = Package::new(
-        package_id_rs,
-        package_path_rs,
-        version_rs
-    ).to_vec();
+        package_id_rs.clone(),
+        package_path_rs.clone(),
+        version_rs.clone(),
+    )
+    .to_vec();
+
+    // And extract them
+    let workdir = extract(&package_path_rs).unwrap();
+    let workdirs = vec![workdir];
 
     // Ask to the install function finally
-    rust_install_pkg(packages)
+    match rust_install_pkg(packages, workdirs) {
+        Ok(_) => 0,
+        Err(error) => error.into(),
+    }
 }
 
 #[unsafe(no_mangle)]
@@ -120,7 +142,10 @@ pub extern "C" fn c_remove_pkg(package_name: *const c_char) -> c_int {
     let packages: Vec<String> = vec![package_name_rs];
 
     // Then use that function
-    rust_remove_pkg(packages)
+    match rust_remove_pkg(packages) {
+        Ok(_) => 0,
+        Err(error) => error.into()
+    }
 }
 
 /// This structure defines the standard package info, and we will
@@ -166,7 +191,7 @@ impl Package {
         let vector = vec![self.clone()];
         vector
     }
-    
+
     /// If you have 3 vectors, and they are all corresponding
     /// to each other one by one, you can use this to convert
     /// them to one vector.
@@ -176,7 +201,7 @@ impl Package {
     pub fn from_vec(
         id_vec: Vec<String>,
         path_vec: Vec<String>,
-        version_vec: Vec<String>
+        version_vec: Vec<String>,
     ) -> Vec<Self> {
         // First, make 3 to 1.
         let total: Vec<(String, String, String)> = id_vec
@@ -316,7 +341,7 @@ pub fn get_installed_package_info() -> HashMap<String, PkgInfoToml> {
     package
 }
 
-/// This function can help you to extract the package to the 
+/// This function can help you to extract the package to the
 /// temp dir.
 ///
 /// It will return a String, and it is the output dir.
@@ -355,4 +380,3 @@ fn create_dir() -> Result<PathBuf, std::io::Error> {
 
     Ok(target_dir)
 }
-
