@@ -1,7 +1,7 @@
 //! This file is used in testing the method of the struct
 //! `Package`'s methods.
 //!
-//! To use that, please follow the instruction of the struct 
+//! To use that, please follow the instruction of the struct
 //! `Package` with `cargo doc --no-deps --open`.
 // Import the library
 use mcospkg::Package;
@@ -17,7 +17,7 @@ fn public() -> Package {
     package
 }
 
-// Test 1. Check is the function "new" returns the currect 
+// Test 1. Check is the function "new" returns the currect
 // value.
 #[test]
 fn is_new_function_returns_correct_value() {
@@ -51,6 +51,6 @@ fn can_three_vecs_returns_one() {
     // Use that func
     let packages = Package::from_vec(ids, paths, versions);
     let package = public(); // Get package metadata
-    let package_compare = vec![package];    // Make it to vec
+    let package_compare = vec![package]; // Make it to vec
     assert_eq!(packages, package_compare);
 }

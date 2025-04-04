@@ -25,7 +25,8 @@ mod config;
 use clap::{Parser, Subcommand};
 use config::VERSION;
 use mcospkg::{Color, Package};
-use mcospkg::{rust_install_pkg, rust_remove_pkg};
+use mcospkg::{extract, rust_install_pkg, rust_remove_pkg};
+use std::process::exit;
 
 // Define args
 #[derive(Parser, Debug)]
@@ -71,22 +72,33 @@ fn main() {
             package_path,
         } => {
             // Make it to a struct
-            let packages = Package::new(
-                package_id,
-                package_version,
-                package_path,
-            ).to_vec();
+            let packages = Package::new(package_id, package_version, package_path.clone()).to_vec();
+
+            // Then extract
+            let workdir = vec![extract(&package_path).unwrap_or_else(|error| {
+                eprintln!("{}: Cannot extract package: {}", color.error, error);
+                exit(1)
+            })];
 
             // Finally use this function
-            let status = rust_install_pkg(packages);
-            if status != 0 {
-                println!("{}: Installation failed with code: {}", color.error, status);
+            let status = rust_install_pkg(packages, workdir);
+            if let Err(error) = status {
+                eprintln!(
+                    "{}: The installation failed with code: {:?}",
+                    color.error, error
+                );
+                exit(error.into())
             }
         }
         Operations::Remove { package_id } => {
             let packages: Vec<String> = vec![package_id];
             let status = rust_remove_pkg(packages);
-            if status != 0 {                                                      println!("{}: Uninstallation failed with code: {}", color.error, status);
+            if let Err(error) = status {
+                eprintln!(
+                    "{}: The uninstallation failed with code: {:?}",
+                    color.error, error
+                );
+                exit(error.into())
             }
         }
     }

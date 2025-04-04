@@ -31,7 +31,7 @@
 // Import some essential modules
 use colored::Colorize;
 use dialoguer::Input;
-use mcospkg::{download, readcfg, rust_install_pkg, Color, Package};
+use mcospkg::{Color, Package, download, extract, readcfg, rust_install_pkg};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
@@ -72,6 +72,7 @@ pub struct InstallData {
     pkgindex: HashMap<String, PkgInfo>, // The package index
     fetch_index: Vec<String>,         // The package to fetch
     file_index: Vec<String>,          // The package to fetch
+    workdir_index: Vec<String>,       // The workdir index
 }
 
 // Define Install Public Data
@@ -88,6 +89,7 @@ impl InstallData {
             pkgindex: HashMap::new(),
             fetch_index: vec![],
             file_index: vec![],
+            workdir_index: vec![],
         }
     }
 
@@ -101,8 +103,8 @@ impl InstallData {
         match readcfg() {
             Err(e) => {
                 println!("{}", color.failed);
-                println!("{}: {}", color.error, e);
-                println!(
+                eprintln!("{}: {}", color.error, e);
+                eprintln!(
                     "{}: Consider using this format to write to that file:\n\t{}",
                     color.note,
                     "[reponame] = [repourl]".cyan()
@@ -124,7 +126,7 @@ impl InstallData {
                 if errtime == 0 {
                     println!("{}", color.failed);
                 }
-                println!(
+                eprintln!(
                     "{}: Repository index \"{}\" not found",
                     color.error, reponame
                 );
@@ -132,7 +134,7 @@ impl InstallData {
             }
         }
         if errtime > 0 {
-            println!(
+            eprintln!(
                 "{}: use \"{}\" to download it.",
                 color.tip,
                 "mcospkg-mirror update".cyan()
@@ -146,12 +148,12 @@ impl InstallData {
             let indexpath = format!("/etc/mcospkg/database/remote/{}.json", reponame);
             let index_raw = std::fs::read_to_string(&indexpath).unwrap();
             let index: PkgIndex = serde_json::from_str(&index_raw).unwrap_or_else(|_| {
-                println!("{}", color.error);
-                println!(
+                println!("{}", color.failed);
+                eprintln!(
                     "{}: Invaild PKGINDEX format (In repository \"{}\")",
                     color.error, &reponame
                 );
-                println!(
+                eprintln!(
                     "{}: Consider update the mirrorlist/mcospkg or contact the repository author.",
                     color.note
                 );
@@ -174,7 +176,7 @@ impl InstallData {
         for pkg in &pkglist {
             if !self.pkgindex.contains_key(pkg) {
                 println!("{}", color.failed);
-                println!(
+                eprintln!(
                     "{}: Package \"{}\" not found in any repositories.",
                     color.error, pkg
                 );
@@ -199,7 +201,7 @@ impl InstallData {
             baseon.extend(self.baseon_total[i].clone());
         }
         let mut visited = HashSet::new(); // Will record the deps of checked.
-                                          // Generate a vector to record the packages that need dependencies
+        // Generate a vector to record the packages that need dependencies
         let mut need_dependencies: Vec<String> = Vec::new(); // This will record them
         for pkg in &pkglist {
             if baseon.contains_key(pkg) {
@@ -212,7 +214,7 @@ impl InstallData {
             for dep in &baseon[pkg] {
                 if !self.pkgindex.contains_key(dep) {
                     println!("{}", color.failed);
-                    println!(
+                    eprintln!(
                         "{}: Invaild package dependencies: \"{}\" (not found in package index)",
                         color.error, dep
                     );
@@ -259,7 +261,7 @@ impl InstallData {
         let binding = fs::read_to_string("/etc/mcospkg/database/packages.toml")
             .unwrap_or_else(|err| {
                 println!("{}", color.failed);
-                println!(
+                eprintln!(
                     "{}: Cannot read \"/etc/mcospkg/database/packages.toml\": {}",
                     color.error, err
                 );
@@ -299,8 +301,8 @@ impl InstallData {
         // If len == 0, it means that no package will be installed.
         // Have a check :0
         if len == 0 {
-            println!("{}: No any package will be installed.", color.error);
-            println!(
+            eprintln!("{}: No any package will be installed.", color.error);
+            eprintln!(
                 "{}: Maybe some packages has been ignored? If yes, add the argument \"{}\".",
                 color.tip,
                 "-r".cyan()
@@ -334,7 +336,7 @@ impl InstallData {
                 .interact_text()
                 .unwrap();
             if input != "y" && input != "Y" {
-                println!("{}: User rejected the installation request", color.error);
+                eprintln!("{}: User rejected the installation request", color.error);
                 exit(1);
             }
         } else {
@@ -351,7 +353,7 @@ impl InstallData {
         if !Path::new(cache_path).exists() {
             std::fs::create_dir(cache_path).unwrap();
         } else if !Path::new(cache_path).is_dir() {
-            println!(
+            eprintln!(
                 "{}: The cache path is not a directory. Please make it to a dir",
                 color.error
             );
@@ -400,16 +402,16 @@ impl InstallData {
             // Download the package
             let mut errtime: u32 = 0;
             if let Err(e) = download(pkg_url, pkg_path.clone(), msg) {
-                println!("{}: {}", color.error, e);
+                eprintln!("{}: {}", color.error, e);
                 errtime += 1;
             }
 
             if errtime > 0 {
-                println!(
+                eprintln!(
                     "{}: Cannot download some packages, installation abort.",
                     color.error
                 );
-                println!(
+                eprintln!(
                     "{}: Please check your network connection or contact the author",
                     color.note
                 );
@@ -438,11 +440,7 @@ impl InstallData {
             .zip(self.fetch_index.clone().into_iter())
             .clone()
         {
-            print!(
-                "{} \"{}\": ",
-                "Package".bold(),
-                pkg.cyan().bold().clone()
-            );
+            print!("{} \"{}\": ", "Package".bold(), pkg.cyan().bold().clone());
             io::stdout().flush().unwrap();
             // First, get the file's sha256 intergrity.
             // Get the file name
@@ -477,7 +475,25 @@ impl InstallData {
         // In the installation, we needs to extract the packages, is it [doge]
         // and we needs to extract it to a defined place,
         // Such as /var/cache/mcospkg (dafault)
-        //
+        // In it, we only needs to use 1 function, use it later.
+
+        // Iterate the id and path
+        for (id, path) in self
+            .fetch_index
+            .clone()
+            .into_iter()
+            .zip(self.file_index.clone())
+        {
+            print!("{} \"{}\"... ", "Extracting".bold(), id.cyan().bold());
+            io::stdout().flush().unwrap();
+            let workdir = extract(&path).unwrap_or_else(|err| {
+                println!("{}", color.failed);
+                eprintln!("{}: Cannot extract packages: {}", color.error, err);
+                exit(1)
+            });
+            println!("{}", color.done);
+            self.workdir_index.push(workdir);
+        }
     }
 
     pub fn step7_install(&mut self) {
@@ -494,12 +510,12 @@ impl InstallData {
         let packages = Package::from_vec(
             self.fetch_index.clone(),
             self.file_index.clone(),
-            self.pkg_version_index.clone()
+            self.pkg_version_index.clone(),
         );
 
-        let status = rust_install_pkg(packages);
-        if status != 0 {
-            println!("{}: The installation didn't exit normally.", color.error);
+        let status = rust_install_pkg(packages, self.workdir_index.clone());
+        if let Err(error) = status {
+            eprintln!("{}: The installation has received an error, \"{:?}\".", color.error, error);
         }
     }
 
@@ -533,7 +549,7 @@ impl InstallData {
             if !self.pkgindex.contains_key(&sub_dep) {
                 let color = Color::new();
                 println!("{}", color.failed);
-                println!(
+                eprintln!(
                     "{}: Dependency \"{}\" of \"{}\" has an invalid sub - dependency \"{}\".",
                     color.error,
                     dep,

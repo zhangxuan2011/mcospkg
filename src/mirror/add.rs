@@ -60,10 +60,9 @@ impl AddData {
                         // If yes, print the message
                         println!(
                             "{}: Added repository name \"{}\" to the configuration file.",
-                            color.ok,
-                            reponame,
+                            color.ok, reponame,
                         );
-                        return Ok(())
+                        return Ok(());
                     }
                 }
             }

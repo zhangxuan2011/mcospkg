@@ -8,11 +8,11 @@
 ///
 /// ```rust
 /// use mcospkg::{
-///     rust_install_pkg, 
-///     rust_remove_pkg, 
+///     rust_install_pkg,
+///     rust_remove_pkg,
 ///     Package
 /// };  // Use this function
-/// 
+///
 /// // Define some basic information
 /// let name = String::from("example");  // Package ID
 /// let path = String::from("/path/to/pkg"); // Package path
@@ -28,7 +28,7 @@
 /// let packages: Vec<Package> = vec![package]; // Append it to Vector
 ///
 /// let _ = rust_install_pkg(packages); // Use it, will return i32
-/// 
+///
 /// // Next, remove it.
 /// let packages: Vec<String> = vec![name];
 ///
@@ -38,7 +38,6 @@
 /// ```
 ///
 // The Re-export area
-
 mod install;
 mod remove;
 

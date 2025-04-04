@@ -38,6 +38,7 @@ touch database/packages.toml    # To save the installed package's info
     # We've done the working in etc, now in var.
     cd var
     mkdir -p cache/mcospkg
+    mkdir -p log/mcospkg
     cd ../..
 
 # Then in lib
