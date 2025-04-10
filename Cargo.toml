@@ -22,6 +22,7 @@ serde_json = "1.0.135"
 sha2 = "0.10.8"
 tar = "0.4.44"
 toml = "0.8.20"
+walkdir = "2.5.0"
 xz2 = "0.1.7"
 
 # And library define area.

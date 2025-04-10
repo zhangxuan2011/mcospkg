@@ -163,7 +163,10 @@ impl RemoveData {
         }
         let status = rust_remove_pkg(packages);
         if let Err(error) = status {
-            eprintln!("{}: The uninstallation has received an error, \"{:?}\".", color.error, error);
+            eprintln!(
+                "{}: The uninstallation has received an error, \"{:?}\".",
+                color.error, error
+            );
             exit(error.into())
         }
     }
