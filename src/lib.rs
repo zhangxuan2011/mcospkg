@@ -68,7 +68,7 @@ impl Color {
     }
 }
 
-/// The error code defintions, 
+/// The error code defintions,
 #[derive(Debug)]
 pub enum ErrorCode {
     FileNotFound = 1,
@@ -144,7 +144,7 @@ pub extern "C" fn c_remove_pkg(package_name: *const c_char) -> c_int {
     // Then use that function
     match rust_remove_pkg(packages) {
         Ok(_) => 0,
-        Err(error) => error.into()
+        Err(error) => error.into(),
     }
 }
 

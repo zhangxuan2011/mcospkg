@@ -515,7 +515,10 @@ impl InstallData {
 
         let status = rust_install_pkg(packages, self.workdir_index.clone());
         if let Err(error) = status {
-            eprintln!("{}: The installation has received an error, \"{:?}\".", color.error, error);
+            eprintln!(
+                "{}: The installation has received an error, \"{:?}\".",
+                color.error, error
+            );
         }
     }
 
