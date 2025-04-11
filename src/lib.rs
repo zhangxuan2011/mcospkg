@@ -19,7 +19,7 @@ use tar::Archive;
 use xz2::read::XzDecoder;
 
 // Type annotions area
-type Message = std::borrow::Cow<'static, str>;
+pub type Message = std::borrow::Cow<'static, str>;
 
 // Public area
 pub use pkgmgr::install_pkg as rust_install_pkg;
@@ -72,11 +72,12 @@ impl Color {
 #[derive(Debug)]
 pub enum ErrorCode {
     FileNotFound = 1,
-    InvaildPackage = 2,
+    CopyFilesError = 2,
     PermissionDenied = 3,
     CleanDirError = 4,
     ChangeDirError = 5,
-    ExecuteError = 6,
+    CreateDirError = 6,
+    ExecuteError = 7,
     Other = -1,
     // More error codes...
 }

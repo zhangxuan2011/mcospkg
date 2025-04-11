@@ -1,7 +1,14 @@
-use crate::{ErrorCode, Package};
+use crate::{ErrorCode, Package, Message};
 use chrono::Local;
 use indicatif::{ProgressBar, ProgressStyle};
-use std::fs::{Permissions, remove_dir_all, set_permissions};
+use std::fs::{
+    Permissions,
+    copy,
+    create_dir_all,
+    remove_file,
+    remove_dir_all,
+    set_permissions,
+};
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::process::Command;
@@ -66,17 +73,7 @@ fn step2_build(package_name: &str, workdir: &str) -> Result<(), ErrorCode> {
 
 /// The step 2, but the mode is "copy".
 /// This will copy the file to the root directory "/" to continue the installation.
-fn step2_copy(package_name: String, workdir: String) {
-    // Set up the progress bar
-    let mut pb = ProgressBar::new(100);
-    let style = ProgressStyle::default_bar()
-        .template("{msg} {eta_precise} [{bar:40.green/blue}] {percent}%")
-        .unwrap()
-        .progress_chars("##-");
-    pb.set_style(style);
-    let package_msg: std::borrow::Cow<'static, str> = package_name.clone().into();
-    pb.set_message(package_msg);
-
+fn step2_copy(package_name: String, workdir: String) -> Result<(), ErrorCode> {
     // Get all file and append it to a vector
     let mut path_index_raw: Vec<String> = Vec::new(); // Store it
     for entry in WalkDir::new(&workdir) {
@@ -94,17 +91,71 @@ fn step2_copy(package_name: String, workdir: String) {
     // First, delete the string before "workdir"
     let mut path_index: Vec<String> = Vec::new();
     let pattern = "mcospkg";
-    for path in path_index_raw {
-        // TODO: Rewrite the logic later.
+    for path in &path_index_raw {
         if let Some(index) = workdir.find(pattern) {
-            // 如果找到了模式，截取模式之后的内容
+            // Strip the unused path
             let result = path[index + 13..].to_string();
             path_index.push(result);
         }
     }
+    
+    // Next, copy the file to the currect dirs.
+    //
+    // Parse it to the Path format
+    let paths_source: Vec<&Path> = path_index_raw
+        .iter()
+        .map(|s| Path::new(s))
+        .collect();
+    let paths_target: Vec<&Path> = path_index
+        .iter()
+        .map(|s| Path::new(s))
+        .collect();
 
-    println!("All files: {:?}", path_index);
+    // Set up the progress bar
+    let total_files = paths_source.clone().len();
+    let pb = ProgressBar::new(total_files as u64);
+    let style = ProgressStyle::default_bar()
+        .template("{msg} {eta_precise} [{bar:40.green/blue}] {percent}%")
+        .unwrap()
+        .progress_chars("##-");
+    pb.set_style(style);
+    let package_msg: Message = package_name.clone().into();
+    pb.set_message(package_msg);
+    
+    // Start to copy
+    for (source, target) in paths_source
+        .into_iter()
+        .zip(paths_target.into_iter())
+    {
+        // Create the parent directory
+        if let Some(parent) = target.parent() {
+            if let Err(_) = create_dir_all(parent) {
+                return Err(ErrorCode::CreateDirError);
+            }
+        }
+
+        // Then copy them
+        match copy(source, target) {
+            Ok(_) => {
+                pb.inc(1);
+            }
+            Err(_) => {
+                return Err(ErrorCode::CopyFilesError);
+            }
+        }
+
+        // Remove something not good
+        // The removing metadata
+        let hooks = Path::new("/HOOKS");
+        let unhooks = Path::new("/UNHOOKS");
+        
+        // Main removing
+        let _ = remove_file(hooks);
+        let _ = remove_file(unhooks);
+    }
+
     pb.finish();
+    Ok(())
 }
 
 pub fn install_pkg(packages: Vec<Package>, workdirs: Vec<String>) -> Result<(), ErrorCode> {
@@ -122,7 +173,7 @@ pub fn install_pkg(packages: Vec<Package>, workdirs: Vec<String>) -> Result<(), 
         if pkg_instype == "build" {
             step2_build(&package.id, &workdir)?;
         } else {
-            step2_copy(package.id.clone(), workdir.clone());
+            step2_copy(package.id.clone(), workdir.clone())?;
         }
 
         // Clean up the directory and exit
