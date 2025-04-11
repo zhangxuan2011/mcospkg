@@ -39,9 +39,11 @@ mod main {
 mod config;
 use clap::{Parser, Subcommand};
 use config::VERSION;
+use is_root::is_root;
 use main::install;
 use main::remove;
 use mcospkg::Color;
+use std::process::exit;
 
 // ========structs define area=========
 
@@ -105,7 +107,25 @@ enum Operations {
 
 // ========functions define area==========
 fn main() {
+    let color = Color::new();
+
+    // Parse arguments
     let args = Args::parse();
+
+    // Make sure that the user is root.
+    if !is_root() {
+        eprintln!(
+            "{}: You must run this program with root privileges.",
+            color.error
+        );
+
+        eprintln!(
+            "{}: Did you forget to add \"sudo\" in front of the command? :)",
+            color.tip
+        );
+        exit(1);
+    }
+
     match args.operation {
         Operations::Install {
             packages,
