@@ -6,12 +6,11 @@ mod mirror {
 }
 use clap::{Parser, Subcommand};
 use config::VERSION;
+use is_root::is_root;
 use mcospkg::Color;
 use mirror::add::AddData;
 use mirror::update::UpdateData;
-use is_root::is_root;
 use std::process::exit;
-
 
 // And then we define the arguments
 #[derive(Parser, Debug)]
@@ -56,7 +55,8 @@ fn main() {
         );
 
         eprintln!(
-            "{}: Did you forget to add \"sudo\" in front of the command? :)",                                                                   color.tip
+            "{}: Did you forget to add \"sudo\" in front of the command? :)",
+            color.tip
         );
         exit(1);
     }

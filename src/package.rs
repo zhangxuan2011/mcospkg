@@ -72,7 +72,8 @@ fn main() {
             package_path,
         } => {
             // Make it to a struct
-            let packages = Package::new(package_id, package_version, package_path.clone()).to_vec();
+            let packages =
+                Package::new(package_id, package_version, vec![], package_path.clone()).to_vec();
 
             // Then extract
             let workdir = vec![extract(&package_path).unwrap_or_else(|error| {

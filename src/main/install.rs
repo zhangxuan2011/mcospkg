@@ -31,7 +31,7 @@
 // Import some essential modules
 use colored::Colorize;
 use dialoguer::Input;
-use mcospkg::{Color, Package, download, extract, readcfg, rust_install_pkg};
+use mcospkg::{Color, Message, Package, download, extract, readcfg, rust_install_pkg};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
@@ -39,9 +39,6 @@ use std::fs::{self, File};
 use std::io::{self, Read, Write};
 use std::path::Path;
 use std::process::exit;
-
-// Type annotion area
-type Message = std::borrow::Cow<'static, str>;
 
 // =====json define area=====
 // Define the pkg color.info
@@ -73,6 +70,7 @@ pub struct InstallData {
     fetch_index: Vec<String>,         // The package to fetch
     file_index: Vec<String>,          // The package to fetch
     workdir_index: Vec<String>,       // The workdir index
+    dependencies: Vec<String>,        // The dependencies
 }
 
 // Define Install Public Data
@@ -90,6 +88,7 @@ impl InstallData {
             fetch_index: vec![],
             file_index: vec![],
             workdir_index: vec![],
+            dependencies: vec![],
         }
     }
 
@@ -208,6 +207,7 @@ impl InstallData {
                 need_dependencies.push(pkg.clone());
             }
         }
+
         // Next, we need to check if the dependencies is exist in the pkgindex
         // If it is not exist, we need to quit
         for pkg in &need_dependencies {
@@ -220,7 +220,8 @@ impl InstallData {
                     );
                     exit(1)
                 } else {
-                    self.check_all_dependencies(dep, &mut visited);
+                    self.check_all_dependencies(&dep.clone(), &mut visited);
+                    self.dependencies.push(dep.clone());
                 }
             }
         }
@@ -504,21 +505,30 @@ impl InstallData {
         // My friend, Xiaokuai, Helps me to write the install library.
         // I'll thank him at here :)
         // So, we need to use hsi library to install the package
-        // First, convert them to struct "Package".
+        // First, get the dependencies
+        for dep in self.dependencies.clone() {
+            let deps: Vec<String> = self
+                .baseon_total
+                .iter()
+                .flat_map(|m| m.get(&dep).map(|v| v.clone()).unwrap_or_default())
+                .collect();
 
-        // Make 3 vectors as 1 vector
-        let packages = Package::from_vec(
-            self.fetch_index.clone(),
-            self.file_index.clone(),
-            self.pkg_version_index.clone(),
-        );
-
-        let status = rust_install_pkg(packages, self.workdir_index.clone());
-        if let Err(error) = status {
-            eprintln!(
-                "{}: The installation has received an error, \"{:?}\".",
-                color.error, error
+            // Then, convert them to struct "Package".
+            // Make 3 vectors as 1 vector
+            let packages = Package::from_vec(
+                self.fetch_index.clone(),
+                self.file_index.clone(),
+                deps.clone(),
+                self.pkg_version_index.clone(),
             );
+
+            let status = rust_install_pkg(packages, self.workdir_index.clone());
+            if let Err(error) = status {
+                eprintln!(
+                    "{}: The installation has received an error, \"{:?}\".",
+                    color.error, error
+                );
+            }
         }
     }
 

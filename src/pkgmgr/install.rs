@@ -1,14 +1,20 @@
-use crate::{ErrorCode, Package, Message};
+/// This file will install the packages and register the
+/// package info.
+///
+/// Actually, the main install function was re-exported to
+/// the "install_pkg" in this crate, renamed to
+/// "rust_install_pkg".
+///
+/// And the others? they are the steps of installing package,
+/// which is very important.
+///
+/// For more usages, see the doc in "src/lib.rs"
+// Import some modules
+use crate::{ErrorCode, Message, Package, PkgInfoToml, get_installed_package_info};
 use chrono::Local;
 use indicatif::{ProgressBar, ProgressStyle};
-use std::fs::{
-    Permissions,
-    copy,
-    create_dir_all,
-    remove_file,
-    remove_dir_all,
-    set_permissions,
-};
+use std::collections::HashMap;
+use std::fs::{Permissions, copy, create_dir_all, remove_dir_all, remove_file, set_permissions};
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::process::Command;
@@ -41,8 +47,23 @@ fn step1_check_pkg_instype(workdir: &str) -> String {
 ///
 /// It will return a "Result" type, which is the enum of
 /// "ErrorCode" declared in crate "mcospkg".
-fn step2_build(package_name: &str, workdir: &str) -> Result<(), ErrorCode> {
-    // First, preset some metadata
+fn step2_build(
+    package_name: String,
+    version: String,
+    dependencies: Vec<String>,
+    workdir: String,
+) -> Result<(), ErrorCode> {
+    // First, Create a progress bar.
+    let pb = ProgressBar::new_spinner();
+    let style = ProgressStyle::default_spinner()
+        .template("{spinner} {msg} {percent}%")
+        .unwrap()
+        .progress_chars("##-");
+    pb.set_style(style);
+    let package_msg: Message = package_name.clone().into();
+    pb.set_message(package_msg);
+
+    // Then, preset some metadata
     let permission = Permissions::from_mode(0o755);
     let build_script_path = format!("{}/BUILD-SCRIPT", workdir);
     let binding = build_script_path.clone();
@@ -68,12 +89,18 @@ fn step2_build(package_name: &str, workdir: &str) -> Result<(), ErrorCode> {
         return Err(ErrorCode::ExecuteError);
     }
 
+    register_package(version, dependencies)?;
     Ok(())
 }
 
 /// The step 2, but the mode is "copy".
 /// This will copy the file to the root directory "/" to continue the installation.
-fn step2_copy(package_name: String, workdir: String) -> Result<(), ErrorCode> {
+fn step2_copy(
+    package_name: String,
+    version: String,
+    dependencies: Vec<String>,
+    workdir: String,
+) -> Result<(), ErrorCode> {
     // Get all file and append it to a vector
     let mut path_index_raw: Vec<String> = Vec::new(); // Store it
     for entry in WalkDir::new(&workdir) {
@@ -98,18 +125,12 @@ fn step2_copy(package_name: String, workdir: String) -> Result<(), ErrorCode> {
             path_index.push(result);
         }
     }
-    
+
     // Next, copy the file to the currect dirs.
     //
     // Parse it to the Path format
-    let paths_source: Vec<&Path> = path_index_raw
-        .iter()
-        .map(|s| Path::new(s))
-        .collect();
-    let paths_target: Vec<&Path> = path_index
-        .iter()
-        .map(|s| Path::new(s))
-        .collect();
+    let paths_source: Vec<&Path> = path_index_raw.iter().map(|s| Path::new(s)).collect();
+    let paths_target: Vec<&Path> = path_index.iter().map(|s| Path::new(s)).collect();
 
     // Set up the progress bar
     let total_files = paths_source.clone().len();
@@ -121,12 +142,9 @@ fn step2_copy(package_name: String, workdir: String) -> Result<(), ErrorCode> {
     pb.set_style(style);
     let package_msg: Message = package_name.clone().into();
     pb.set_message(package_msg);
-    
+
     // Start to copy
-    for (source, target) in paths_source
-        .into_iter()
-        .zip(paths_target.into_iter())
-    {
+    for (source, target) in paths_source.into_iter().zip(paths_target.into_iter()) {
         // Create the parent directory
         if let Some(parent) = target.parent() {
             if let Err(_) = create_dir_all(parent) {
@@ -148,13 +166,32 @@ fn step2_copy(package_name: String, workdir: String) -> Result<(), ErrorCode> {
         // The removing metadata
         let hooks = Path::new("/HOOKS");
         let unhooks = Path::new("/UNHOOKS");
-        
+
         // Main removing
         let _ = remove_file(hooks);
         let _ = remove_file(unhooks);
+
+        // Set up the new length
+        let new_total = pb.length().unwrap() + 10;
+        pb.set_length(new_total);
     }
 
+    // Register the package information (use a function)
+    register_package(version, dependencies)?;
     pb.finish();
+    Ok(())
+}
+
+/// This function can register the package info, which is the
+/// information of the installed package.
+fn register_package(version: String, dependencies: Vec<String>) -> Result<(), ErrorCode> {
+    // First, preset the data
+    let pkginfo = get_installed_package_info();
+    println!("{:?}", pkginfo);
+    println!("{}", version);
+    println!("{:?}", dependencies);
+
+    // Then read the info file
     Ok(())
 }
 
@@ -171,9 +208,19 @@ pub fn install_pkg(packages: Vec<Package>, workdirs: Vec<String>) -> Result<(), 
 
         // Do the next step
         if pkg_instype == "build" {
-            step2_build(&package.id, &workdir)?;
+            step2_build(
+                package.id.clone(),
+                package.version.clone(),
+                package.dependencies.clone(),
+                workdir.clone(),
+            )?;
         } else {
-            step2_copy(package.id.clone(), workdir.clone())?;
+            step2_copy(
+                package.id.clone(),
+                package.version.clone(),
+                package.dependencies.clone(),
+                workdir.clone(),
+            )?;
         }
 
         // Clean up the directory and exit

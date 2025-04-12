@@ -28,7 +28,8 @@ pub use pkgmgr::remove_pkg as rust_remove_pkg;
 // =====toml define area=====
 /// This defines the toml format (/etc/mcospkg/database/package.toml)
 ///
-/// This is for uninstall only
+/// It will record the package's dependencies, version, and
+/// so on.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct PkgInfoToml {
     pub dependencies: Vec<String>,
@@ -119,6 +120,7 @@ pub extern "C" fn c_install_pkg(
     let packages = Package::new(
         package_id_rs.clone(),
         package_path_rs.clone(),
+        vec![], // No dependencies
         version_rs.clone(),
     )
     .to_vec();
@@ -174,14 +176,20 @@ pub extern "C" fn c_remove_pkg(package_name: *const c_char) -> c_int {
 pub struct Package {
     pub id: String,
     pub path: String,
+    pub dependencies: Vec<String>,
     pub version: String,
 }
 
 // Implement it
 impl Package {
     /// The initializer of this struct
-    pub fn new(id: String, path: String, version: String) -> Self {
-        Self { id, path, version }
+    pub fn new(id: String, path: String, dependencies: Vec<String>, version: String) -> Self {
+        Self {
+            id,
+            path,
+            dependencies,
+            version,
+        }
     }
 
     /// This will help you to convert this struct to a vector.
@@ -202,6 +210,7 @@ impl Package {
     pub fn from_vec(
         id_vec: Vec<String>,
         path_vec: Vec<String>,
+        dependencies: Vec<String>,
         version_vec: Vec<String>,
     ) -> Vec<Self> {
         // First, make 3 to 1.
@@ -216,7 +225,7 @@ impl Package {
         // Then iterate it
         let mut vector = Vec::new();
         for (id, path, version) in total {
-            let package = Package::new(id, path, version);
+            let package = Package::new(id, path, dependencies.clone(), version);
             vector.push(package);
         }
         vector
