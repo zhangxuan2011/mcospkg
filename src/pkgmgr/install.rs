@@ -187,15 +187,13 @@ fn step2_copy(
 fn register_package(version: String, dependencies: Vec<String>) -> Result<(), ErrorCode> {
     // First, preset the data
     let pkginfo = get_installed_package_info();
-    println!("{:?}", pkginfo);
-    println!("{}", version);
-    println!("{:?}", dependencies);
 
     // Then read the info file
     Ok(())
 }
 
 pub fn install_pkg(packages: Vec<Package>, workdirs: Vec<String>) -> Result<(), ErrorCode> {
+    println!("{:#?}", packages);
     // Iterate the index and set the ProgressBar
     for (package, workdir) in packages.into_iter().zip(workdirs) {
         // Then call the installing steps

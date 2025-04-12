@@ -70,7 +70,6 @@ pub struct InstallData {
     fetch_index: Vec<String>,         // The package to fetch
     file_index: Vec<String>,          // The package to fetch
     workdir_index: Vec<String>,       // The workdir index
-    dependencies: Vec<String>,        // The dependencies
 }
 
 // Define Install Public Data
@@ -88,7 +87,6 @@ impl InstallData {
             fetch_index: vec![],
             file_index: vec![],
             workdir_index: vec![],
-            dependencies: vec![],
         }
     }
 
@@ -221,7 +219,6 @@ impl InstallData {
                     exit(1)
                 } else {
                     self.check_all_dependencies(&dep.clone(), &mut visited);
-                    self.dependencies.push(dep.clone());
                 }
             }
         }
@@ -506,29 +503,43 @@ impl InstallData {
         // I'll thank him at here :)
         // So, we need to use hsi library to install the package
         // First, get the dependencies
-        for dep in self.dependencies.clone() {
-            let deps: Vec<String> = self
-                .baseon_total
-                .iter()
-                .flat_map(|m| m.get(&dep).map(|v| v.clone()).unwrap_or_default())
-                .collect();
-
-            // Then, convert them to struct "Package".
-            // Make 3 vectors as 1 vector
-            let packages = Package::from_vec(
-                self.fetch_index.clone(),
-                self.file_index.clone(),
-                deps.clone(),
-                self.pkg_version_index.clone(),
-            );
-
-            let status = rust_install_pkg(packages, self.workdir_index.clone());
-            if let Err(error) = status {
-                eprintln!(
-                    "{}: The installation has received an error, \"{:?}\".",
-                    color.error, error
-                );
+        let mut dependencies: Vec<Vec<String>> = Vec::new();
+        let min_len = std::cmp::min(self.baseon_total.len(), self.fetch_index.len());
+        for i in 0..min_len {
+            let map = &self.baseon_total[i];
+            let pkg = &self.fetch_index[i];
+            if let Some(deps) = map.get(pkg) {
+                dependencies.push(deps.clone());
+            } else {
+                dependencies.push(Vec::new());
             }
+        }
+
+        // If self.baseon_total longer, handle the maps remaining
+        for _ in min_len..self.baseon_total.len() {
+            dependencies.push(Vec::new());
+        }
+
+        // If self.fetch_index longer, handle the deps remaining
+        for _ in min_len..self.fetch_index.len() {
+            dependencies.push(Vec::new());
+        }
+
+        // Then, convert them to struct "Package".
+        // Make 3 vectors as 1 vector
+        let packages = Package::from_vec(
+            self.fetch_index.clone(),
+            self.file_index.clone(),
+            dependencies.clone(),
+            self.pkg_version_index.clone(),
+        );
+
+        let status = rust_install_pkg(packages, self.workdir_index.clone());
+        if let Err(error) = status {
+            eprintln!(
+                "{}: The installation has received an error, \"{:?}\".",
+                color.error, error
+            );
         }
     }
 
