@@ -505,9 +505,10 @@ impl InstallData {
         // First, get the dependencies
         let mut dependencies: Vec<Vec<String>> = Vec::new();
         let length_baseon = self.baseon_total.len();
+        let length_fetch_index = self.fetch_index.len();
         for i in 0..length_baseon {
             let map = &self.baseon_total[i];
-            for j in 0..map.keys().len() {
+            for j in 0..length_fetch_index {
                 let pkg = &self.fetch_index[j];
                 if let Some(deps) = map.get(pkg) {
                     dependencies.push(deps.clone());
@@ -516,6 +517,7 @@ impl InstallData {
                 }
             }
         }
+        println!("{:#?}", dependencies);
 
         // Make sure the length is the same or larger than others
         for _ in length_baseon..self.baseon_total.len() {
