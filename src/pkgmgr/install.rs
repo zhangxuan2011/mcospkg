@@ -10,11 +10,12 @@
 ///
 /// For more usages, see the doc in "src/lib.rs"
 // Import some modules
-use crate::{ErrorCode, Message, Package, PkgInfoToml, get_installed_package_info, set_installed_package_info};
+use crate::{Color, ErrorCode, Message, Package, PkgInfoToml, get_installed_package_info, set_installed_package_info};
 use chrono::Local;
+use colored::Colorize;
 use indicatif::{ProgressBar, ProgressStyle};
-use std::collections::HashMap;
 use std::fs::{Permissions, copy, create_dir_all, remove_dir_all, remove_file, set_permissions};
+use std::time::Duration;
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::process::Command;
@@ -28,15 +29,23 @@ use walkdir::WalkDir;
 ///
 /// This function will ONLY return 2 strings: "copy" and "build".
 fn step1_check_pkg_instype(workdir: &str) -> String {
-    // First, we needs to check the file "BUILD-SCRIPT" exists
-    // If yes, return "src", else return "build".
-
-    // Open the file
+    // First, we needs to check is the package is valid.
+    // Presets
     let build_script_path = format!("{}/BUILD-SCRIPT", workdir);
-    let path = Path::new(build_script_path.as_str());
+    let hooks_script_path = format!("{}/HOOKS", workdir);
+    let unhooks_script_path = format!("{}/UNHOOKS", workdir);
+    let build_path = Path::new(build_script_path.as_str());
+    let hooks_path = Path::new(hooks_script_path.as_str());
+    let unhooks_path = Path::new(unhooks_script_path.as_str());
 
     // Then check
-    if path.exists() {
+    // First is the HOOKS and UNHOOKS
+    if !hooks_path.exists() && !unhooks_path.exists() {
+        return String::from("invalid");
+    }
+    
+    // Then check the path
+    if build_path.exists() {
         String::from("build")
     } else {
         String::from("copy")
@@ -56,12 +65,14 @@ fn step2_build(
     // First, Create a progress bar.
     let pb = ProgressBar::new_spinner();
     let style = ProgressStyle::default_spinner()
-        .template("{spinner} {msg} {percent}%")
+        .template("{spinner:.green} {msg}")
         .unwrap()
         .progress_chars("##-");
     pb.set_style(style);
-    let package_msg: Message = package_name.clone().into();
-    pb.set_message(package_msg);
+    pb.enable_steady_tick(Duration::from_millis(250));
+    let package_msg = package_name.clone().cyan().bold();
+    let total_msg: Message = format!("Building package \"{}\"...", package_msg).into();
+    pb.set_message(total_msg.clone());
 
     // Then, preset some metadata
     let permission = Permissions::from_mode(0o755);
@@ -89,7 +100,13 @@ fn step2_build(
         return Err(ErrorCode::ExecuteError);
     }
 
+    // Don't forget to copy the UNHOOKS file to the 
+
     register_package(package_name.clone(), version, dependencies)?;
+
+    // Set the finish message
+    let finish_msg: Message = format!("{} {}", total_msg, "Done".green().bold()).into();
+    pb.finish_with_message(finish_msg);
     Ok(())
 }
 
@@ -200,6 +217,8 @@ fn register_package(package: String, version: String, dependencies: Vec<String>)
 }
 
 pub fn install_pkg(packages: Vec<Package>, workdirs: Vec<String>) -> Result<(), ErrorCode> {
+    let color = Color::new();
+
     // Iterate the index and set the ProgressBar
     for (package, workdir) in packages.into_iter().zip(workdirs) {
         // Then call the installing steps
@@ -209,7 +228,7 @@ pub fn install_pkg(packages: Vec<Package>, workdirs: Vec<String>) -> Result<(), 
         if let Err(_) = std::env::set_current_dir(&workdir) {
             return Err(ErrorCode::ChangeDirError);
         }
-
+        
         // Do the next step
         if pkg_instype == "build" {
             step2_build(
@@ -218,13 +237,19 @@ pub fn install_pkg(packages: Vec<Package>, workdirs: Vec<String>) -> Result<(), 
                 package.dependencies.clone(),
                 workdir.clone(),
             )?;
-        } else {
+        } else if pkg_instype == "copy" {
             step2_copy(
                 package.id.clone(),
                 package.version.clone(),
                 package.dependencies.clone(),
                 workdir.clone(),
             )?;
+        } else {
+            eprintln!(
+                "{}: What the hell is that package called \"{}\"? It's invalid! So passed.",
+                color.warning, package.id.clone()
+            );
+            continue;
         }
 
         // Clean up the directory and exit

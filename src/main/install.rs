@@ -517,7 +517,6 @@ impl InstallData {
                 }
             }
         }
-        println!("{:#?}", dependencies);
 
         // Make sure the length is the same or larger than others
         for _ in length_baseon..self.baseon_total.len() {
