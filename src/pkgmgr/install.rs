@@ -193,7 +193,6 @@ fn register_package(version: String, dependencies: Vec<String>) -> Result<(), Er
 }
 
 pub fn install_pkg(packages: Vec<Package>, workdirs: Vec<String>) -> Result<(), ErrorCode> {
-    println!("{:#?}", packages);
     // Iterate the index and set the ProgressBar
     for (package, workdir) in packages.into_iter().zip(workdirs) {
         // Then call the installing steps

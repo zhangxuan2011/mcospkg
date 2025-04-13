@@ -504,24 +504,25 @@ impl InstallData {
         // So, we need to use hsi library to install the package
         // First, get the dependencies
         let mut dependencies: Vec<Vec<String>> = Vec::new();
-        let min_len = std::cmp::min(self.baseon_total.len(), self.fetch_index.len());
-        for i in 0..min_len {
+        let length_baseon = self.baseon_total.len();
+        for i in 0..length_baseon {
             let map = &self.baseon_total[i];
-            let pkg = &self.fetch_index[i];
-            if let Some(deps) = map.get(pkg) {
-                dependencies.push(deps.clone());
-            } else {
-                dependencies.push(Vec::new());
+            for j in 0..map.keys().len() {
+                let pkg = &self.fetch_index[j];
+                if let Some(deps) = map.get(pkg) {
+                    dependencies.push(deps.clone());
+                } else {
+                    dependencies.push(Vec::new());
+                }
             }
         }
-
-        // If self.baseon_total longer, handle the maps remaining
-        for _ in min_len..self.baseon_total.len() {
+        
+        // Make sure the length is the same or larger than others
+        for _ in length_baseon..self.baseon_total.len() {
             dependencies.push(Vec::new());
         }
 
-        // If self.fetch_index longer, handle the deps remaining
-        for _ in min_len..self.fetch_index.len() {
+        for _ in length_baseon..self.fetch_index.len() {
             dependencies.push(Vec::new());
         }
 

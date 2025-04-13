@@ -214,18 +214,14 @@ impl Package {
         version_vec: Vec<String>,
     ) -> Vec<Self> {
         // First, make 3 to 1.
-        println!("id_vec length: {}", id_vec.len());
-        println!("path_vec length: {}", path_vec.len());
-        println!("version_vec length: {}", version_vec.len());
-        println!("dependencies_vec length: {}", dependencies_vec.len());
-        let total: Vec<(String, String, String, Vec<String>)> = id_vec.clone()
+        let total: Vec<(String, String, String, Vec<String>)> = id_vec
+            .clone()
             .into_iter()
             .zip(path_vec.clone())
             .zip(version_vec.clone())
             .zip(dependencies_vec.clone())
             .filter_map(|(((a, b), c), d)| Some((a, b, c, d)))
             .collect();
-        println!("{:#?}", total);
 
         // Then iterate it
         let mut vector = Vec::new();
