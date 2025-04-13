@@ -352,6 +352,17 @@ pub fn get_installed_package_info() -> HashMap<String, PkgInfoToml> {
     package
 }
 
+/// Of cource, this function will help you to serialize the 
+/// install data to a TOML data.
+pub fn set_installed_package_info(package_info: HashMap<String, PkgInfoToml>) {
+    // First, serialize it
+    let json_str = toml::to_string(&package_info).unwrap();
+
+    // Then open that file
+    let mut file_path = File::create("/etc/mcospkg/database/packages.toml").unwrap();
+    file_path.write_all(json_str.as_bytes()).unwrap();
+}
+
 /// This function can help you to extract the package to the
 /// temp dir.
 ///
