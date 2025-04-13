@@ -24,8 +24,9 @@
 mod config;
 use clap::{Parser, Subcommand};
 use config::VERSION;
-use mcospkg::{Color, Package};
+use is_root::is_root;
 use mcospkg::{extract, rust_install_pkg, rust_remove_pkg};
+use mcospkg::{Color, Package};
 use std::process::exit;
 
 // Define args
@@ -64,6 +65,19 @@ fn main() {
     let args = Args::parse();
     let color = Color::new();
 
+    // Make sure that it runs on root privilege
+    if !is_root() {
+        eprintln!(
+            "{}: You must run this program with root privileges.",
+            color.error
+        );
+        eprintln!(
+            "{}: Did you forget to add \"sudo\" in front of the command? :)",
+            color.tip
+        );
+        exit(1);
+    }
+
     // Match it
     match args.operation {
         Operations::Install {
@@ -73,7 +87,7 @@ fn main() {
         } => {
             // Make it to a struct
             let packages =
-                Package::new(package_id, package_version, vec![], package_path.clone()).to_vec();
+                Package::new(package_id, package_path.clone(), vec![], package_version).to_vec();
 
             // Then extract
             let workdir = vec![extract(&package_path).unwrap_or_else(|error| {
