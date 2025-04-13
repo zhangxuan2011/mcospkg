@@ -30,6 +30,7 @@
 /// (NOTE: The `src/main.rs` maybe update so that the lines may change.)
 // Import some essential modules
 use colored::Colorize;
+use ctrlc::set_handler;
 use dialoguer::Input;
 use mcospkg::{Color, Message, Package, download, extract, readcfg, rust_install_pkg};
 use serde::{Deserialize, Serialize};
@@ -535,6 +536,20 @@ impl InstallData {
             dependencies.clone(),
             self.pkg_version_index.clone(),
         );
+
+        // Since then, we will set up a interrupt handler.
+        let workdirs_clone = self.workdir_index.clone();
+        let color_clone = color.clone();
+        let _ = set_handler(move || {
+            eprintln!(
+                "{}: Got interrupt signal, cleaning up...",
+                color_clone.warning
+            );
+            // Use the cloned workdir
+            for workdir in workdirs_clone.clone() {
+                fs::remove_dir_all(workdir).unwrap();
+            }
+        });
 
         let status = rust_install_pkg(packages, self.workdir_index.clone());
         if let Err(error) = status {

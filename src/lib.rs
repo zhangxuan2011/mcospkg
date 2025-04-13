@@ -38,6 +38,7 @@ pub struct PkgInfoToml {
 
 /// In most codes, we usually meet the colorful message. So
 /// we moved them in a struct.
+#[derive(Debug, Clone)]
 pub struct Color {
     /// The color of the message
     /// This uses in lots of file, so we merged them here.
@@ -352,7 +353,7 @@ pub fn get_installed_package_info() -> HashMap<String, PkgInfoToml> {
     package
 }
 
-/// Of cource, this function will help you to serialize the 
+/// Of cource, this function will help you to serialize the
 /// install data to a TOML data.
 pub fn set_installed_package_info(package_info: HashMap<String, PkgInfoToml>) {
     // First, serialize it

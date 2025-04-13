@@ -25,8 +25,8 @@ mod config;
 use clap::{Parser, Subcommand};
 use config::VERSION;
 use is_root::is_root;
-use mcospkg::{extract, rust_install_pkg, rust_remove_pkg};
 use mcospkg::{Color, Package};
+use mcospkg::{extract, rust_install_pkg, rust_remove_pkg};
 use std::process::exit;
 
 // Define args

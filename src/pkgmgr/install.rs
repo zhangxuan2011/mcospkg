@@ -10,15 +10,20 @@
 ///
 /// For more usages, see the doc in "src/lib.rs"
 // Import some modules
-use crate::{Color, ErrorCode, Message, Package, PkgInfoToml, get_installed_package_info, set_installed_package_info};
+use crate::{
+    Color, ErrorCode, Message, Package, PkgInfoToml, get_installed_package_info,
+    set_installed_package_info,
+};
 use chrono::Local;
 use colored::Colorize;
 use indicatif::{ProgressBar, ProgressStyle};
-use std::fs::{Permissions, copy, create_dir_all, remove_dir_all, remove_file, set_permissions};
-use std::time::Duration;
+use std::fs::{
+    Permissions, copy, create_dir_all, remove_dir_all, remove_file, rename, set_permissions,
+};
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::process::Command;
+use std::time::Duration;
 use walkdir::WalkDir;
 
 /// This will help you to check the package type, and return
@@ -43,7 +48,7 @@ fn step1_check_pkg_instype(workdir: &str) -> String {
     if !hooks_path.exists() && !unhooks_path.exists() {
         return String::from("invalid");
     }
-    
+
     // Then check the path
     if build_path.exists() {
         String::from("build")
@@ -100,7 +105,19 @@ fn step2_build(
         return Err(ErrorCode::ExecuteError);
     }
 
-    // Don't forget to copy the UNHOOKS file to the 
+    // Don't forget to copy the UNHOOKS file to the cureect place
+    // The UNHOOKS's format should be like
+    // /etc/mcospkg/database/remove_info/{PACKAGE_NAME}-UNHOOKS, which is a bash script.
+    // So, move it
+    let unhook_path = format!("{}/UNHOOKS", workdir);
+    let unhook = Path::new(&unhook_path);
+    if unhook.exists() {
+        let place_to_unhook = format!(
+            "/etc/mcospkg/database/remove_info/{}-UNHOOKS",
+            package_name.clone()
+        );
+        let _ = rename(unhook_path, place_to_unhook);
+    }
 
     register_package(package_name.clone(), version, dependencies)?;
 
@@ -161,7 +178,7 @@ fn step2_copy(
     pb.set_message(package_msg);
 
     // Start to copy
-    for (source, target) in paths_source.into_iter().zip(paths_target.into_iter()) {
+    for (source, target) in paths_source.iter().zip(paths_target.iter()) {
         // Create the parent directory
         if let Some(parent) = target.parent() {
             if let Err(_) = create_dir_all(parent) {
@@ -184,13 +201,30 @@ fn step2_copy(
         let hooks = Path::new("/HOOKS");
         let unhooks = Path::new("/UNHOOKS");
 
+        // First, run the hook
+        if hooks.exists() {
+            let status = Command::new("sh").arg("-c").arg("/HOOKS").status().unwrap();
+
+            if !status.success() {
+                return Err(ErrorCode::ExecuteError);
+            }
+        }
+
+        // Second, copy the UNHOOKS to the currect dir
+        // The UNHOOKS's format should be like
+        // /etc/mcospkg/database/remove_info/{PACKAGE_NAME}-UNHOOKS, which is a bash script.
+        // So, move it
+        if unhooks.exists() {
+            let place_to_unhook = format!(
+                "/etc/mcospkg/database/remove_info/{}-UNHOOKS",
+                package_name.clone()
+            );
+            let _ = rename("/UNHOOKS", place_to_unhook);
+        }
+
         // Main removing
         let _ = remove_file(hooks);
         let _ = remove_file(unhooks);
-
-        // Set up the new length
-        let new_total = pb.length().unwrap() + 10;
-        pb.set_length(new_total);
     }
 
     // Register the package information (use a function)
@@ -201,13 +235,18 @@ fn step2_copy(
 
 /// This function can register the package info, which is the
 /// information of the installed package.
-fn register_package(package: String, version: String, dependencies: Vec<String>) -> Result<(), ErrorCode> {
+fn register_package(
+    package: String,
+    version: String,
+    dependencies: Vec<String>,
+) -> Result<(), ErrorCode> {
     // First, preset the data
     let mut pkginfo = get_installed_package_info();
-    
+
     // Then, append the new package info to that install info
     let pkgtoml = PkgInfoToml {
-        version, dependencies
+        version,
+        dependencies,
     };
     pkginfo.insert(package, pkgtoml);
 
@@ -228,7 +267,7 @@ pub fn install_pkg(packages: Vec<Package>, workdirs: Vec<String>) -> Result<(), 
         if let Err(_) = std::env::set_current_dir(&workdir) {
             return Err(ErrorCode::ChangeDirError);
         }
-        
+
         // Do the next step
         if pkg_instype == "build" {
             step2_build(
@@ -247,7 +286,8 @@ pub fn install_pkg(packages: Vec<Package>, workdirs: Vec<String>) -> Result<(), 
         } else {
             eprintln!(
                 "{}: What the hell is that package called \"{}\"? It's invalid! So passed.",
-                color.warning, package.id.clone()
+                color.warning,
+                package.id.clone()
             );
             continue;
         }
