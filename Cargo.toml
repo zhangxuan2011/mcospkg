@@ -1,6 +1,6 @@
 [package]
 name = "mcospkg"
-version = "0.9.1"
+version = "0.9.2"
 authors = ["zhangxuan2011 <zx20110412@outlook.com>", "RainyHowCool <rainyhowcool@outlook.com>"]
 edition = "2024"
 
@@ -9,21 +9,29 @@ license = "GPL-3.0"
 repository = "https://github.com/zhangxuan2011/mcospkg"
 
 [dependencies]
+chrono = "0.4.40"
 clap = { version = "4.5.23", features = ["derive"] }
 colored = "3.0.0"
+ctrlc = "3.4.6"
 dialoguer = "0.11.0"
 hex = "0.4.3"
 indicatif = "0.17.9"
-libc = "0.2.169"
+is-root = "0.1.3"
+rand = "0.9.0"
 reqwest = { version = "0.12.12", features = ["blocking"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.135"
 sha2 = "0.10.8"
+tar = "0.4.44"
 toml = "0.8.20"
+walkdir = "2.5.0"
+xz2 = "0.1.7"
 
-# The deps for building C libs
-[build-dependencies]
-cc = "1.2.10"
+# And library define area.
+# This library can uses in C and Rust.
+[lib]
+name = "mcospkg"
+crate-type = ["cdylib", "rlib"]
 
 # This is the binary file define area
 # The file format: mcospkg-xxx
@@ -44,5 +52,6 @@ path = "src/package.rs"
 [profile.release]
 lto = true
 strip = true
+codegen-units = 1
 opt-level = "z"
 panic = "abort"

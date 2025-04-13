@@ -37,11 +37,13 @@ mod main {
     pub mod remove;
 }
 mod config;
+use clap::{Parser, Subcommand};
 use config::VERSION;
+use is_root::is_root;
 use main::install;
 use main::remove;
-use clap::{Parser, Subcommand};
 use mcospkg::Color;
+use std::process::exit;
 
 // ========structs define area=========
 
@@ -63,18 +65,16 @@ enum Operations {
     #[command(about = "Install the package(s).")]
     Install {
         // Get packages
-        #[arg(
-            required = true,
-            help = "The package(s) you want to install"
-        )]
+        #[arg(required = true, help = "The package(s) you want to install")]
         packages: Vec<String>,
-        
+
         // And should we bypass asking
         #[arg(
             long = "bypass",
             short = 'y',
             default_value_t = false,
-            help = "Specify it will not ask ANY questions"            )]
+            help = "Specify it will not ask ANY questions"
+        )]
         bypass_ask: bool,
 
         // And should we reinstall it
@@ -91,10 +91,7 @@ enum Operations {
     #[command(about = "Remove the package(s).")]
     Remove {
         // Get packages
-        #[arg(
-            required = true,
-            help = "The package(s) you want to remove"
-        )]
+        #[arg(required = true, help = "The package(s) you want to remove")]
         packages: Vec<String>,
 
         // And should we bypass asking
@@ -102,17 +99,43 @@ enum Operations {
             long = "bypass",
             short = 'y',
             default_value_t = false,
-            help = "Specify it will not ask ANY questions")]
+            help = "Specify it will not ask ANY questions"
+        )]
         bypass_ask: bool,
-    }
+    },
 }
 
 // ========functions define area==========
 fn main() {
+    let color = Color::new();
+
+    // Parse arguments
     let args = Args::parse();
+
+    // Make sure that the user is root.
+    if !is_root() {
+        eprintln!(
+            "{}: You must run this program with root privileges.",
+            color.error
+        );
+
+        eprintln!(
+            "{}: Did you forget to add \"sudo\" in front of the command? :)",
+            color.tip
+        );
+        exit(1);
+    }
+
     match args.operation {
-        Operations::Install {packages, bypass_ask, reinstall} => install(packages, bypass_ask, reinstall),
-        Operations::Remove {packages, bypass_ask} => remove(packages, bypass_ask),
+        Operations::Install {
+            packages,
+            bypass_ask,
+            reinstall,
+        } => install(packages, bypass_ask, reinstall),
+        Operations::Remove {
+            packages,
+            bypass_ask,
+        } => remove(packages, bypass_ask),
     };
 }
 
@@ -135,7 +158,7 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
     install_data.step2_check_deps(pkglist.clone());
 
     // Stage 3: Check if package is installed
-    install_data.step3_check_installed(reinstall, pkglist.clone());
+    install_data.step3_check_installed(reinstall);
 
     // Stage 4: Download the package
     install_data.step4_download(bypass_ask);
@@ -143,8 +166,11 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
     // Stage 5: Check sha256sums integrity
     install_data.step5_check_sums();
 
-    // Stage 6: Install the package
-    install_data.step6_install();
+    // Stage 6: Extract the package
+    install_data.step6_extract();
+
+    // Stage 7: Install the package
+    install_data.step7_install();
 
     // And, that's complete!
 }

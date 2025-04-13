@@ -31,9 +31,9 @@
 ///
 // Import some modules
 use dialoguer::Input;
-use mcospkg::{get_installed_package_info, remove_pkg, Color, PkgInfoToml};
-use std::collections::HashMap;
-use std::ffi::CString;
+use mcospkg::{Color, PkgInfoToml, get_installed_package_info, rust_remove_pkg};
+use std::collections::{HashMap, HashSet};
+use std::io::{self, Write};
 use std::process::exit;
 
 // ========structs define area=========
@@ -69,7 +69,7 @@ impl RemoveData {
         self.package = get_installed_package_info();
     }
 
-    pub fn step2_check_deps(&mut self, pkglist: Vec<String>) {
+    pub fn step2_check_deps(&mut self, mut pkglist: Vec<String>) {
         let color = Color::new();
 
         // Stage 2: Check the dependencies
@@ -78,13 +78,14 @@ impl RemoveData {
         for (key, _) in self.package.iter() {
             package_keys.push(key.clone());
         }
+        let mut visited = HashSet::new();
 
         // Make sure the specified the package is exist in that file
         // Check the HashMap's key is ok.
-        let mut errtime = 0;
+        let mut errtime: u32 = 0;
         for package in &pkglist {
             if !package_keys.contains(package) {
-                println!(
+                eprintln!(
                     "{}: Package \"{}\" is not installed, so we have no idea (T_T)",
                     color.error, package
                 );
@@ -93,24 +94,38 @@ impl RemoveData {
         }
 
         if errtime > 0 {
-            println!("{}: {} errors occurred, terminated.", color.error, errtime);
+            eprintln!("{}: {} errors occurred, terminated.", color.error, errtime);
             exit(1)
         }
 
         // Then let's see see...
         print!("{}: Resolving dependencies... ", color.info);
+        io::stdout().flush().unwrap();
 
         // Read the vector "dependencies"
         let mut dependencies: Vec<String> = Vec::new();
+        errtime = 0; // Reset error times
         for pkg in &pkglist {
-            for dep in &self.package[pkg].dependencies {
-                dependencies.push(dep.clone());
-            }
+            self.check_all_dependencies(
+                pkg,
+                &package_keys,
+                &mut dependencies,
+                &mut errtime,
+                &mut visited,
+                &color,
+            );
+        }
+        if errtime > 0 {
+            println!(
+                "{}: Perhaps you modified the package information?",
+                color.tip
+            );
+            exit(1)
         }
         println!("{}", color.done);
 
         // Merge them
-        self.delete_pkgs.append(&mut pkglist.clone());
+        self.delete_pkgs.append(&mut pkglist);
         self.delete_pkgs.append(&mut dependencies);
     }
 
@@ -126,25 +141,72 @@ impl RemoveData {
 
         if !bypass_ask {
             let input: String = Input::new()
-                .with_prompt("\nDo you want to continue? (y/n)")
+                .with_prompt("\nProceed to remove these packages? (y/n)")
                 .interact_text()
                 .unwrap();
             if input != "y" && input != "Y" {
-                println!("{}: User rejected the uninstallation request", color.error);
+                eprintln!("{}: User rejected the uninstallation request.", color.error);
                 exit(1);
             }
         } else {
-            println!("\nADo you proceed to remove these packages? (y/n): y");
+            println!("\nProceed to remove these packages? (y/n): y");
         }
     }
 
     pub fn step4_remove(&self) {
+        let color = Color::new();
+
         // Stage 4: Remove the package
-        for delete_pkg in &self.delete_pkgs {
-            let package_name = CString::new(delete_pkg.as_str()).unwrap();
-            unsafe {
-                remove_pkg(package_name.as_ptr());
-            };
+        let mut packages: Vec<String> = Vec::new();
+        for delete_pkg in self.delete_pkgs.clone() {
+            packages.push(delete_pkg);
+        }
+        let status = rust_remove_pkg(packages);
+        if let Err(error) = status {
+            eprintln!(
+                "{}: The uninstallation has received an error, \"{:?}\".",
+                color.error, error
+            );
+            exit(error.into())
+        }
+    }
+
+    // Check the dependencies completely
+    fn check_all_dependencies(
+        &self,
+        pkg: &str,
+        package_keys: &Vec<String>,
+        dependencies: &mut Vec<String>,
+        errtime: &mut u32,
+        visited: &mut HashSet<String>,
+        color: &Color,
+    ) {
+        if visited.contains(pkg) {
+            return;
+        }
+        visited.insert(pkg.to_string());
+
+        for dep in &self.package[pkg].dependencies {
+            if !package_keys.contains(dep) {
+                if *errtime == 0 {
+                    println!("{}", color.failed);
+                }
+                println!(
+                    "{}: Invalid dependencies \"{}\" in package \"{}\".",
+                    color.error, dep, pkg
+                );
+                *errtime += 1;
+            } else {
+                dependencies.push(dep.clone());
+                self.check_all_dependencies(
+                    dep,
+                    package_keys,
+                    dependencies,
+                    errtime,
+                    visited,
+                    color,
+                );
+            }
         }
     }
 }
