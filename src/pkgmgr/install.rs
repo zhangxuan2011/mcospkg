@@ -18,8 +18,9 @@ use chrono::Local;
 use colored::Colorize;
 use indicatif::{ProgressBar, ProgressStyle};
 use std::fs::{
-    Permissions, copy, create_dir_all, remove_dir_all, remove_file, rename, set_permissions,
+    File, Permissions, copy, create_dir_all, remove_dir_all, remove_file, rename, set_permissions,
 };
+use std::io::Write;
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::process::Command;
@@ -227,6 +228,10 @@ fn step2_copy(
         let _ = remove_file(unhooks);
     }
 
+    // Store the file index
+    path_index.retain(|s| !s.contains("/UNHOOKS") && !s.contains("/HOOKS")); // Delete something not good
+    step3_copy_store_fileindex(package_name.clone(), path_index.clone());
+
     // Register the package information (use a function)
     register_package(package_name.clone(), version, dependencies)?;
     pb.finish();
@@ -253,6 +258,22 @@ fn register_package(
     // Then write to that file
     set_installed_package_info(pkginfo);
     Ok(())
+}
+
+/// This function will store the package's file index, which
+/// saved in a JSON format, in
+/// /etc/mcospkg/database/remove_info/<PACKAGE_NAME>-index.json
+///
+/// NOTE: This function is for "copy" mode only
+fn step3_copy_store_fileindex(package: String, file_index: Vec<String>) {
+    // First, serialize the index
+    let json_result = serde_json::to_string(&file_index).unwrap();
+
+    // Then, we write that ti the currect place
+    let path = format!("/etc/mcospkg/database/remove_info/{}-index.json", package);
+
+    let mut file_path = File::create(&path).unwrap();
+    file_path.write_all(json_result.as_bytes()).unwrap();
 }
 
 pub fn install_pkg(packages: Vec<Package>, workdirs: Vec<String>) -> Result<(), ErrorCode> {
