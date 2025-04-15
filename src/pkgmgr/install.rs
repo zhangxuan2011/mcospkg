@@ -196,37 +196,46 @@ fn step2_copy(
                 return Err(ErrorCode::CopyFilesError);
             }
         }
-
-        // Remove something not good
-        // The removing metadata
-        let hooks = Path::new("/HOOKS");
-        let unhooks = Path::new("/UNHOOKS");
-
-        // First, run the hook
-        if hooks.exists() {
-            let status = Command::new("sh").arg("-c").arg("/HOOKS").status().unwrap();
-
-            if !status.success() {
-                return Err(ErrorCode::ExecuteError);
-            }
-        }
-
-        // Second, copy the UNHOOKS to the currect dir
-        // The UNHOOKS's format should be like
-        // /etc/mcospkg/database/remove_info/{PACKAGE_NAME}-UNHOOKS, which is a bash script.
-        // So, move it
-        if unhooks.exists() {
-            let place_to_unhook = format!(
-                "/etc/mcospkg/database/remove_info/{}-UNHOOKS",
-                package_name.clone()
-            );
-            let _ = rename("/UNHOOKS", place_to_unhook);
-        }
-
-        // Main removing
-        let _ = remove_file(hooks);
-        let _ = remove_file(unhooks);
     }
+
+    // Remove something not good
+    // The removing metadata
+    let hooks = Path::new("/HOOKS");
+    let unhooks = Path::new("/UNHOOKS");
+
+    // First, run the hook
+    if hooks.exists() {
+        let permission = Permissions::from_mode(0o755);
+        let build_script_path = "/HOOKS";
+        let path = Path::new(build_script_path);
+
+        // Then set the file permission
+        if let Err(_) = set_permissions(path, permission) {
+            return Err(ErrorCode::PermissionDenied);
+        }
+
+        let status = Command::new("sh").arg("-c").arg("/HOOKS").status().unwrap();
+
+        if !status.success() {
+            return Err(ErrorCode::ExecuteError);
+        }
+    }
+
+    // Second, copy the UNHOOKS to the currect dir
+    // The UNHOOKS's format should be like
+    // /etc/mcospkg/database/remove_info/{PACKAGE_NAME}-UNHOOKS, which is a bash script.
+    // So, move it
+    if unhooks.exists() {
+        let place_to_unhook = format!(
+            "/etc/mcospkg/database/remove_info/{}-UNHOOKS",
+            package_name.clone()
+        );
+        let _ = rename("/UNHOOKS", place_to_unhook);
+    }
+
+    // Main removing
+    let _ = remove_file(hooks);
+    let _ = remove_file(unhooks);
 
     // Store the file index
     path_index.retain(|s| !s.contains("/UNHOOKS") && !s.contains("/HOOKS")); // Delete something not good
