@@ -72,16 +72,25 @@ fn step3_unregister_package(package: String) -> Result<(), ErrorCode> {
     let color = Color::new();
 
     // Get the package info first
-    let mut pkginfo = get_installed_package_info();
+    let mut map = get_installed_package_info();
+
+    // Delete the package in dependencies
+    // Get the version and dependencies
+    for pkginfo in map.values_mut() {
+        let new_deps = pkginfo.dependencies.clone().into_iter()
+           .filter(|pkg| *pkg != package)
+           .collect();
+        pkginfo.dependencies = new_deps;
+    }
 
     // Then delete the package
-    if let None = pkginfo.remove(&package) {
+    if let None = map.remove(&package) {
         eprintln!("{}: Cannot unregister the package because it even doesn't exist!", color.error);
         return Err(ErrorCode::UnregisterError);
     }
     
     // Finally, set it up
-    set_installed_package_info(pkginfo);
+    set_installed_package_info(map);
 
     Ok(())
 }
