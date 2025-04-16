@@ -13,6 +13,7 @@ use std::collections::HashMap;
 use std::ffi::{CStr, c_char, c_int};
 use std::fs::{self, File};
 use std::io::{Error, ErrorKind, Read, Write};
+use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::exit;
 use tar::Archive;
@@ -80,6 +81,8 @@ pub enum ErrorCode {
     ChangeDirError = 5,
     CreateDirError = 6,
     ExecuteError = 7,
+    RemoveError = 8,
+    UnregisterError = 9,
     Other = -1,
     // More error codes...
 }
@@ -402,4 +405,16 @@ fn create_dir() -> Result<PathBuf, std::io::Error> {
     fs::create_dir(&target_dir)?;
 
     Ok(target_dir)
+}
+
+/// Set up the permission to executable permission.
+pub fn set_executable_permission(file: &str) -> Result<(), ErrorCode> {
+    let permission = fs::Permissions::from_mode(0o755);
+    let path = Path::new(file);
+
+    // Then set the file permission
+    if let Err(_) = fs::set_permissions(path, permission) {
+        return Err(ErrorCode::PermissionDenied);
+    }
+    Ok(())
 }

@@ -133,9 +133,18 @@ impl RemoveData {
         let color = Color::new();
 
         // Stage 3: Ask user
-        println!("{}: The following packages will be removed:", color.info);
-        for pkg in &self.delete_pkgs {
-            print!("{} ", pkg);
+        println!(
+            "{}: The following packages will is being removed:",
+            color.info
+        );
+        let len = self.delete_pkgs.len();
+        for (i, pkg) in self.delete_pkgs.clone().into_iter().enumerate() {
+            // Print the package list
+            if i < len - 1 {
+                print!("{}, ", pkg);
+            } else {
+                print!("{}", pkg);
+            }
         }
         println!(); // Make sure it can show normally
 
@@ -155,13 +164,10 @@ impl RemoveData {
 
     pub fn step4_remove(&self) {
         let color = Color::new();
+        println!("{}: Removing packages...", color.info);
 
         // Stage 4: Remove the package
-        let mut packages: Vec<String> = Vec::new();
-        for delete_pkg in self.delete_pkgs.clone() {
-            packages.push(delete_pkg);
-        }
-        let status = rust_remove_pkg(packages);
+        let status = rust_remove_pkg(self.delete_pkgs.clone());
         if let Err(error) = status {
             eprintln!(
                 "{}: The uninstallation has received an error, \"{:?}\".",

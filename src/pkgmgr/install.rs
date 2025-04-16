@@ -12,16 +12,13 @@
 // Import some modules
 use crate::{
     Color, ErrorCode, Message, Package, PkgInfoToml, get_installed_package_info,
-    set_installed_package_info,
+    set_executable_permission, set_installed_package_info,
 };
 use chrono::Local;
 use colored::Colorize;
 use indicatif::{ProgressBar, ProgressStyle};
-use std::fs::{
-    File, Permissions, copy, create_dir_all, remove_dir_all, remove_file, rename, set_permissions,
-};
+use std::fs::{File, copy, create_dir_all, remove_dir_all, remove_file, rename};
 use std::io::Write;
-use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use std::process::Command;
 use std::time::Duration;
@@ -81,15 +78,8 @@ fn step2_build(
     pb.set_message(total_msg.clone());
 
     // Then, preset some metadata
-    let permission = Permissions::from_mode(0o755);
     let build_script_path = format!("{}/BUILD-SCRIPT", workdir);
-    let binding = build_script_path.clone();
-    let path = Path::new(binding.as_str());
-
-    // Then set the file permission
-    if let Err(_) = set_permissions(path, permission) {
-        return Err(ErrorCode::PermissionDenied);
-    }
+    set_executable_permission(&build_script_path)?;
 
     // And set the log path
     let now = Local::now();
@@ -101,7 +91,7 @@ fn step2_build(
         "{} > /dev/null 2> /var/log/mcospkg/{}",
         build_script_path, log_name
     );
-    let status = Command::new("sh").arg("-c").arg(command).status().unwrap();
+    let status = Command::new("sh").arg("-c").arg(&command).status().unwrap();
     if !status.success() {
         return Err(ErrorCode::ExecuteError);
     }
@@ -205,16 +195,14 @@ fn step2_copy(
 
     // First, run the hook
     if hooks.exists() {
-        let permission = Permissions::from_mode(0o755);
         let build_script_path = "/HOOKS";
-        let path = Path::new(build_script_path);
+        set_executable_permission(build_script_path)?;
 
-        // Then set the file permission
-        if let Err(_) = set_permissions(path, permission) {
-            return Err(ErrorCode::PermissionDenied);
-        }
-
-        let status = Command::new("sh").arg("-c").arg("/HOOKS").status().unwrap();
+        let status = Command::new("sh")
+            .arg("-c")
+            .arg(build_script_path)
+            .status()
+            .unwrap();
 
         if !status.success() {
             return Err(ErrorCode::ExecuteError);
@@ -226,10 +214,7 @@ fn step2_copy(
     // /etc/mcospkg/database/remove_info/{PACKAGE_NAME}-UNHOOKS, which is a bash script.
     // So, move it
     if unhooks.exists() {
-        let place_to_unhook = format!(
-            "/etc/mcospkg/database/remove_info/{}-UNHOOKS",
-            package_name.clone()
-        );
+        let place_to_unhook = format!("/etc/mcospkg/database/remove_info/{}-UNHOOKS", package_name);
         let _ = rename("/UNHOOKS", place_to_unhook);
     }
 
@@ -278,13 +263,24 @@ fn step3_copy_store_fileindex(package: String, file_index: Vec<String>) {
     // First, serialize the index
     let json_result = serde_json::to_string(&file_index).unwrap();
 
-    // Then, we write that ti the currect place
+    // Then, we write that to the currect place
     let path = format!("/etc/mcospkg/database/remove_info/{}-index.json", package);
 
     let mut file_path = File::create(&path).unwrap();
     file_path.write_all(json_result.as_bytes()).unwrap();
 }
 
+/// The installing function
+///
+/// # Explain
+/// This function will install package straightly, which provides
+/// the most simple way.
+///
+/// Running without permissions won't successful, it will quit
+/// because of PermissionDenied.
+///
+/// But be careful to install package with the unauthorized
+/// package, it can probably break your system.
 pub fn install_pkg(packages: Vec<Package>, workdirs: Vec<String>) -> Result<(), ErrorCode> {
     let color = Color::new();
 
