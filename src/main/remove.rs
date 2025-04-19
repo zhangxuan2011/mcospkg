@@ -69,21 +69,19 @@ impl RemoveData {
         self.package = get_installed_package_info();
     }
 
-    pub fn step2_check_deps(&mut self, mut pkglist: Vec<String>) {
+    pub fn step2_check_deps(&mut self, pkglist: &[String]) {
         let color = Color::new();
 
         // Stage 2: Check the dependencies
         // Get its keys
-        let mut package_keys: Vec<String> = Vec::new();
-        for (key, _) in self.package.iter() {
-            package_keys.push(key.clone());
-        }
+        let package_keys = self.package.keys().cloned().collect::<Vec<_>>();
+
         let mut visited = HashSet::new();
 
         // Make sure the specified the package is exist in that file
         // Check the HashMap's key is ok.
         let mut errtime: u32 = 0;
-        for package in &pkglist {
+        for package in pkglist {
             if !package_keys.contains(package) {
                 eprintln!(
                     "{}: Package \"{}\" is not installed, so we have no idea (T_T)",
@@ -105,7 +103,7 @@ impl RemoveData {
         // Read the vector "dependencies"
         let mut dependencies: Vec<String> = Vec::new();
         errtime = 0; // Reset error times
-        for pkg in &pkglist {
+        for pkg in pkglist {
             self.check_all_dependencies(
                 pkg,
                 &package_keys,
@@ -125,7 +123,7 @@ impl RemoveData {
         println!("{}", color.done);
 
         // Merge them
-        self.delete_pkgs.append(&mut pkglist);
+        self.delete_pkgs.extend_from_slice(pkglist);
         self.delete_pkgs.append(&mut dependencies);
     }
 
@@ -138,7 +136,7 @@ impl RemoveData {
             color.info
         );
         let len = self.delete_pkgs.len();
-        for (i, pkg) in self.delete_pkgs.clone().into_iter().enumerate() {
+        for (i, pkg) in self.delete_pkgs.as_slice().into_iter().enumerate() {
             // Print the package list
             if i < len - 1 {
                 print!("{}, ", pkg);
@@ -167,7 +165,7 @@ impl RemoveData {
         println!("{}: Removing packages...", color.info);
 
         // Stage 4: Remove the package
-        let status = rust_remove_pkg(self.delete_pkgs.clone());
+        let status = rust_remove_pkg(&self.delete_pkgs);
         if let Err(error) = status {
             eprintln!(
                 "{}: The uninstallation has received an error, \"{:?}\".",

@@ -121,20 +121,19 @@ pub extern "C" fn c_install_pkg(
     // P.S: "Package" is a struct
 
     // To struct first
-    let packages = Package::new(
+    let packages = [Package::new(
         package_id_rs.clone(),
         package_path_rs.clone(),
         vec![], // No dependencies
         version_rs.clone(),
-    )
-    .to_vec();
+    )];
 
     // And extract them
     let workdir = extract(&package_path_rs).unwrap();
-    let workdirs = vec![workdir];
+    let workdirs = &[workdir];
 
     // Ask to the install function finally
-    match rust_install_pkg(packages, workdirs) {
+    match rust_install_pkg(&packages, workdirs) {
         Ok(_) => 0,
         Err(error) => error.into(),
     }
@@ -146,7 +145,7 @@ pub extern "C" fn c_remove_pkg(package_name: *const c_char) -> c_int {
     let package_name_rs = convert_to_string(package_name);
 
     // Append it to a vector
-    let packages: Vec<String> = vec![package_name_rs];
+    let packages = &[package_name_rs];
 
     // Then use that function
     match rust_remove_pkg(packages) {
@@ -196,15 +195,6 @@ impl Package {
         }
     }
 
-    /// This will help you to convert this struct to a vector.
-    ///
-    /// NOTE: Make sure it is mutable if you want to change
-    /// its value.
-    pub fn to_vec(&self) -> Vec<Self> {
-        let vector = vec![self.clone()];
-        vector
-    }
-
     /// If you have 3 vectors, and they are all corresponding
     /// to each other one by one, you can use this to convert
     /// them to one vector.
@@ -219,11 +209,10 @@ impl Package {
     ) -> Vec<Self> {
         // First, make 3 to 1.
         let total: Vec<(String, String, String, Vec<String>)> = id_vec
-            .clone()
             .into_iter()
-            .zip(path_vec.clone())
-            .zip(version_vec.clone())
-            .zip(dependencies_vec.clone())
+            .zip(path_vec)
+            .zip(version_vec)
+            .zip(dependencies_vec)
             .filter_map(|(((a, b), c), d)| Some((a, b, c, d)))
             .collect();
 
@@ -284,7 +273,7 @@ pub fn readcfg() -> Result<HashMap<String, String>, Error> {
 /// The save is the path of the file to save
 ///
 /// The msg is the message to show in the progress bar
-pub fn download(url: String, save: String, msg: Message) -> Result<(), Error> {
+pub fn download(url: &str, save: &str, msg: Message) -> Result<(), Error> {
     let mut resp =
         get(url).map_err(|e| Error::new(ErrorKind::Other, format!("Cannot fetch file: {}", e)))?;
     let mut file = File::create(save).map_err(|e| {

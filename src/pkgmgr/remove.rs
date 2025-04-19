@@ -1,4 +1,7 @@
-use crate::{Color, ErrorCode, Message, set_executable_permission, get_installed_package_info, set_installed_package_info};
+use crate::{
+    Color, ErrorCode, Message, get_installed_package_info, set_executable_permission,
+    set_installed_package_info,
+};
 use indicatif::{ProgressBar, ProgressStyle};
 use serde::Deserialize;
 use std::fs::remove_file;
@@ -59,10 +62,7 @@ fn step2_copy_rmfile(package: String) -> Result<(), ErrorCode> {
 
     // Finally, delete the index file
     if let Err(why) = remove_file(&path) {
-        eprintln!(
-            "{}: Cannot remove the index file: {}",
-            color.error, why
-        );
+        eprintln!("{}: Cannot remove the index file: {}", color.error, why);
     }
 
     Ok(())
@@ -77,18 +77,24 @@ fn step3_unregister_package(package: String) -> Result<(), ErrorCode> {
     // Delete the package in dependencies
     // Get the version and dependencies
     for pkginfo in map.values_mut() {
-        let new_deps = pkginfo.dependencies.clone().into_iter()
-           .filter(|pkg| *pkg != package)
-           .collect();
+        let new_deps = pkginfo
+            .dependencies
+            .clone()
+            .into_iter()
+            .filter(|pkg| *pkg != package)
+            .collect();
         pkginfo.dependencies = new_deps;
     }
 
     // Then delete the package
     if let None = map.remove(&package) {
-        eprintln!("{}: Cannot unregister the package because it even doesn't exist!", color.error);
+        eprintln!(
+            "{}: Cannot unregister the package because it even doesn't exist!",
+            color.error
+        );
         return Err(ErrorCode::UnregisterError);
     }
-    
+
     // Finally, set it up
     set_installed_package_info(map);
 
@@ -102,7 +108,7 @@ fn step3_unregister_package(package: String) -> Result<(), ErrorCode> {
 /// the sudo privilege.
 ///
 /// Also, it's a dangerous thing if you're removing something
-pub fn remove_pkg(packages: Vec<String>) -> Result<(), ErrorCode> {
+pub fn remove_pkg(packages: &[String]) -> Result<(), ErrorCode> {
     let color = Color::new();
 
     // Iterate it to see
@@ -117,30 +123,28 @@ pub fn remove_pkg(packages: Vec<String>) -> Result<(), ErrorCode> {
         }
 
         // Then, run the package's unhooks.
-        let place_to_unhook = format!(
-            "/etc/mcospkg/database/remove_info/{}-UNHOOKS",
-            package
-        );
+        let place_to_unhook = format!("/etc/mcospkg/database/remove_info/{}-UNHOOKS", package);
 
         // Set up permission
         set_executable_permission(&place_to_unhook)?;
 
         // Then run
-        let status = Command::new("sh").arg("-c").arg(&place_to_unhook).status().unwrap();
+        let status = Command::new("sh")
+            .arg("-c")
+            .arg(&place_to_unhook)
+            .status()
+            .unwrap();
         if !status.success() {
             return Err(ErrorCode::ExecuteError);
         }
 
         // Clean up itself
         if let Err(why) = remove_file(place_to_unhook) {
-            eprintln!(
-                "{}: Cannot remove the unhook file: {}",
-                color.error, why
-            );
+            eprintln!("{}: Cannot remove the unhook file: {}", color.error, why);
         }
 
         // Finally, unregister the package info
-        step3_unregister_package(package)?;
+        step3_unregister_package(package.clone())?;
     }
     Ok(())
 }

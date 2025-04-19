@@ -86,11 +86,15 @@ fn main() {
             package_path,
         } => {
             // Make it to a struct
-            let packages =
-                Package::new(package_id, package_path.clone(), vec![], package_version).to_vec();
+            let packages = &[Package::new(
+                package_id,
+                package_path.clone(),
+                vec![],
+                package_version,
+            )];
 
             // Then extract
-            let workdir = vec![extract(&package_path).unwrap_or_else(|error| {
+            let workdir = &[extract(&package_path).unwrap_or_else(|error| {
                 eprintln!("{}: Cannot extract package: {}", color.error, error);
                 exit(1)
             })];
@@ -106,7 +110,7 @@ fn main() {
             }
         }
         Operations::Remove { package_id } => {
-            let packages: Vec<String> = vec![package_id];
+            let packages = &[package_id];
             let status = rust_remove_pkg(packages);
             if let Err(error) = status {
                 eprintln!(

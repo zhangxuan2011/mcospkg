@@ -57,8 +57,8 @@ impl UpdateData {
 
     pub fn step2_fill_msgs(&mut self) {
         // Fill the repo_msgs
-        for (reponame, _) in self.repoindex.clone() {
-            let msg: Message = reponame.into();
+        for (reponame, _) in self.repoindex.as_slice() {
+            let msg: Message = reponame.clone().into();
             self.repo_msgs.push(msg);
         }
     }
@@ -94,14 +94,14 @@ impl UpdateData {
         println!("{}: Updating index file...", color.info);
         for ((reponame, repourl), msg) in self
             .repoindex
-            .clone()
+            .as_slice()
             .into_iter()
-            .zip(self.repo_msgs.clone().into_iter())
+            .zip((&self.repo_msgs).into_iter())
         {
             if let Err(errmsg) = download(
-                format!("{}/PKGINDEX.json", repourl),
-                format!("/etc/mcospkg/database/remote/{}.json", reponame),
-                msg,
+                &format!("{}/PKGINDEX.json", repourl),
+                &format!("/etc/mcospkg/database/remote/{}.json", reponame),
+                msg.clone(),
             ) {
                 eprintln!("{}: {}", color.error, errmsg);
             }
