@@ -135,7 +135,7 @@ fn main() {
         Operations::Remove {
             packages,
             bypass_ask,
-        } => remove(packages, bypass_ask),
+        } => remove(&packages, bypass_ask),
     };
 }
 
@@ -152,10 +152,10 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
     let mut install_data = install::InstallData::new();
 
     // Stage 1: Get the pkgindex from the repositories
-    install_data.step1_explain_pkg(pkglist.clone()); // Stage 2: Check if the package is exist
+    install_data.step1_explain_pkg(&pkglist); // Stage 2: Check if the package is exist
 
     // Stage 2: Check the packages' dependencies
-    install_data.step2_check_deps(pkglist.clone());
+    install_data.step2_check_deps(&pkglist);
 
     // Stage 3: Check if package is installed
     install_data.step3_check_installed(reinstall);
@@ -179,7 +179,7 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
 // =====S====P====L====I====T=====
 // This is the remove function
 
-fn remove(pkglist: Vec<String>, bypass_ask: bool) {
+fn remove(pkglist: &[String], bypass_ask: bool) {
     // Init the RemoveData struct
     let mut remove_data = remove::RemoveData::new();
 
@@ -187,7 +187,7 @@ fn remove(pkglist: Vec<String>, bypass_ask: bool) {
     remove_data.step1_explain_pkg();
 
     // Stage 2: Check the dependencies
-    remove_data.step2_check_deps(pkglist.clone());
+    remove_data.step2_check_deps(&pkglist);
 
     // Stage 3: Ask user
     remove_data.step3_ask_user(bypass_ask);

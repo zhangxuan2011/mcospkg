@@ -12,15 +12,13 @@
 // Import some modules
 use crate::{
     Color, ErrorCode, Message, Package, PkgInfoToml, get_installed_package_info,
-    set_installed_package_info,
+    set_executable_permission, set_installed_package_info,
 };
 use chrono::Local;
 use colored::Colorize;
 use indicatif::{ProgressBar, ProgressStyle};
-use std::fs::{
-    Permissions, copy, create_dir_all, remove_dir_all, remove_file, rename, set_permissions,
-};
-use std::os::unix::fs::PermissionsExt;
+use std::fs::{File, copy, create_dir_all, remove_dir_all, remove_file, rename};
+use std::io::Write;
 use std::path::Path;
 use std::process::Command;
 use std::time::Duration;
@@ -75,20 +73,13 @@ fn step2_build(
         .progress_chars("##-");
     pb.set_style(style);
     pb.enable_steady_tick(Duration::from_millis(250));
-    let package_msg = package_name.clone().cyan().bold();
-    let total_msg: Message = format!("Building package \"{}\"...", package_msg).into();
+    let total_msg: Message =
+        format!("Building package \"{}\"...", package_name.cyan().bold()).into();
     pb.set_message(total_msg.clone());
 
     // Then, preset some metadata
-    let permission = Permissions::from_mode(0o755);
     let build_script_path = format!("{}/BUILD-SCRIPT", workdir);
-    let binding = build_script_path.clone();
-    let path = Path::new(binding.as_str());
-
-    // Then set the file permission
-    if let Err(_) = set_permissions(path, permission) {
-        return Err(ErrorCode::PermissionDenied);
-    }
+    set_executable_permission(&build_script_path)?;
 
     // And set the log path
     let now = Local::now();
@@ -100,7 +91,7 @@ fn step2_build(
         "{} > /dev/null 2> /var/log/mcospkg/{}",
         build_script_path, log_name
     );
-    let status = Command::new("sh").arg("-c").arg(command).status().unwrap();
+    let status = Command::new("sh").arg("-c").arg(&command).status().unwrap();
     if !status.success() {
         return Err(ErrorCode::ExecuteError);
     }
@@ -112,14 +103,11 @@ fn step2_build(
     let unhook_path = format!("{}/UNHOOKS", workdir);
     let unhook = Path::new(&unhook_path);
     if unhook.exists() {
-        let place_to_unhook = format!(
-            "/etc/mcospkg/database/remove_info/{}-UNHOOKS",
-            package_name.clone()
-        );
+        let place_to_unhook = format!("/etc/mcospkg/database/remove_info/{}-UNHOOKS", package_name);
         let _ = rename(unhook_path, place_to_unhook);
     }
 
-    register_package(package_name.clone(), version, dependencies)?;
+    register_package(package_name, version, dependencies)?;
 
     // Set the finish message
     let finish_msg: Message = format!("{} {}", total_msg, "Done".green().bold()).into();
@@ -164,10 +152,10 @@ fn step2_copy(
     //
     // Parse it to the Path format
     let paths_source: Vec<&Path> = path_index_raw.iter().map(|s| Path::new(s)).collect();
-    let paths_target: Vec<&Path> = path_index.iter().map(|s| Path::new(s)).collect();
+    let paths_target = path_index.iter().map(|s| Path::new(s));
 
     // Set up the progress bar
-    let total_files = paths_source.clone().len();
+    let total_files = paths_source.len();
     let pb = ProgressBar::new(total_files as u64);
     let style = ProgressStyle::default_bar()
         .template("{msg} {eta_precise} [{bar:40.green/blue}] {percent}%")
@@ -178,7 +166,7 @@ fn step2_copy(
     pb.set_message(package_msg);
 
     // Start to copy
-    for (source, target) in paths_source.iter().zip(paths_target.iter()) {
+    for (source, target) in paths_source.iter().zip(paths_target) {
         // Create the parent directory
         if let Some(parent) = target.parent() {
             if let Err(_) = create_dir_all(parent) {
@@ -195,40 +183,48 @@ fn step2_copy(
                 return Err(ErrorCode::CopyFilesError);
             }
         }
-
-        // Remove something not good
-        // The removing metadata
-        let hooks = Path::new("/HOOKS");
-        let unhooks = Path::new("/UNHOOKS");
-
-        // First, run the hook
-        if hooks.exists() {
-            let status = Command::new("sh").arg("-c").arg("/HOOKS").status().unwrap();
-
-            if !status.success() {
-                return Err(ErrorCode::ExecuteError);
-            }
-        }
-
-        // Second, copy the UNHOOKS to the currect dir
-        // The UNHOOKS's format should be like
-        // /etc/mcospkg/database/remove_info/{PACKAGE_NAME}-UNHOOKS, which is a bash script.
-        // So, move it
-        if unhooks.exists() {
-            let place_to_unhook = format!(
-                "/etc/mcospkg/database/remove_info/{}-UNHOOKS",
-                package_name.clone()
-            );
-            let _ = rename("/UNHOOKS", place_to_unhook);
-        }
-
-        // Main removing
-        let _ = remove_file(hooks);
-        let _ = remove_file(unhooks);
     }
 
+    // Remove something not good
+    // The removing metadata
+    let hooks = Path::new("/HOOKS");
+    let unhooks = Path::new("/UNHOOKS");
+
+    // First, run the hook
+    if hooks.exists() {
+        let build_script_path = "/HOOKS";
+        set_executable_permission(build_script_path)?;
+
+        let status = Command::new("sh")
+            .arg("-c")
+            .arg(build_script_path)
+            .status()
+            .unwrap();
+
+        if !status.success() {
+            return Err(ErrorCode::ExecuteError);
+        }
+    }
+
+    // Second, copy the UNHOOKS to the currect dir
+    // The UNHOOKS's format should be like
+    // /etc/mcospkg/database/remove_info/{PACKAGE_NAME}-UNHOOKS, which is a bash script.
+    // So, move it
+    if unhooks.exists() {
+        let place_to_unhook = format!("/etc/mcospkg/database/remove_info/{}-UNHOOKS", package_name);
+        let _ = rename("/UNHOOKS", place_to_unhook);
+    }
+
+    // Main removing
+    let _ = remove_file(hooks);
+    let _ = remove_file(unhooks);
+
+    // Store the file index
+    path_index.retain(|s| !s.contains("/UNHOOKS") && !s.contains("/HOOKS")); // Delete something not good
+    step3_copy_store_fileindex(&package_name, &path_index);
+
     // Register the package information (use a function)
-    register_package(package_name.clone(), version, dependencies)?;
+    register_package(package_name, version, dependencies)?;
     pb.finish();
     Ok(())
 }
@@ -255,11 +251,47 @@ fn register_package(
     Ok(())
 }
 
-pub fn install_pkg(packages: Vec<Package>, workdirs: Vec<String>) -> Result<(), ErrorCode> {
+/// This function will store the package's file index, which
+/// saved in a JSON format, in
+/// /etc/mcospkg/database/remove_info/<PACKAGE_NAME>-index.json
+///
+/// NOTE: This function is for "copy" mode only
+fn step3_copy_store_fileindex(package: &str, file_index: &[String]) {
+    // First, serialize the index
+    let json_result = serde_json::to_string(&file_index).unwrap();
+
+    // Then, we write that to the currect place
+    let path = format!("/etc/mcospkg/database/remove_info/{}-index.json", package);
+
+    let mut file_path = File::create(&path).unwrap();
+    file_path.write_all(json_result.as_bytes()).unwrap();
+}
+
+/// The installing function
+///
+/// # Explain
+/// This function will install package straightly, which provides
+/// the most simple way.
+///
+/// Running without permissions won't successful, it will quit
+/// because of PermissionDenied.
+///
+/// But be careful to install package with the unauthorized
+/// package, it can probably break your system.
+pub fn install_pkg(packages: &[Package], workdirs: &[String]) -> Result<(), ErrorCode> {
     let color = Color::new();
 
     // Iterate the index and set the ProgressBar
-    for (package, workdir) in packages.into_iter().zip(workdirs) {
+    for (
+        Package {
+            id,
+            dependencies,
+            version,
+            ..
+        },
+        workdir,
+    ) in packages.into_iter().zip(workdirs)
+    {
         // Then call the installing steps
         let pkg_instype = step1_check_pkg_instype(&workdir); // Get the install type
 
@@ -269,27 +301,30 @@ pub fn install_pkg(packages: Vec<Package>, workdirs: Vec<String>) -> Result<(), 
         }
 
         // Do the next step
-        if pkg_instype == "build" {
-            step2_build(
-                package.id.clone(),
-                package.version.clone(),
-                package.dependencies.clone(),
-                workdir.clone(),
-            )?;
-        } else if pkg_instype == "copy" {
-            step2_copy(
-                package.id.clone(),
-                package.version.clone(),
-                package.dependencies.clone(),
-                workdir.clone(),
-            )?;
-        } else {
-            eprintln!(
-                "{}: What the hell is that package called \"{}\"? It's invalid! So passed.",
-                color.warning,
-                package.id.clone()
-            );
-            continue;
+        match pkg_instype.as_str() {
+            "build" => {
+                step2_build(
+                    id.clone(),
+                    version.clone(),
+                    dependencies.clone(),
+                    workdir.clone(),
+                )?;
+            }
+            "copy" => {
+                step2_copy(
+                    id.clone(),
+                    version.clone(),
+                    dependencies.clone(),
+                    workdir.clone(),
+                )?;
+            }
+            _ => {
+                eprintln!(
+                    "{}: What the hell is that package called \"{}\"? It's invalid! So passed.",
+                    color.warning, id
+                );
+                continue;
+            }
         }
 
         // Clean up the directory and exit
