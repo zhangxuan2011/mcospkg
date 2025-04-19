@@ -30,15 +30,14 @@
 /// (NOTE: The `src/main.rs` maybe update so that the lines may change.)
 // Import some essential modules
 use colored::Colorize;
+use ctrlc::set_handler;
 use dialoguer::Input;
-use mcospkg::{download, readcfg, Color, install_pkg};
+use mcospkg::{Color, Message, Package, download, extract, readcfg, rust_install_pkg};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::collections::HashMap;
-use std::ffi::CString;
-use std::fmt;
+use std::collections::{HashMap, HashSet};
 use std::fs::{self, File};
-use std::io::{self, Read};
+use std::io::{self, Read, Write};
 use std::path::Path;
 use std::process::exit;
 
@@ -49,13 +48,6 @@ struct PkgInfo {
     filename: String,
     version: String,
     sha256sums: String,
-}
-
-// This implete the trait "Display", we'll use it later.
-impl fmt::Display for PkgInfo {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} (version: {})", self.filename, self.version)
-    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -74,10 +66,11 @@ pub struct InstallData {
     pkgindex_total: Vec<HashMap<String, PkgInfo>>, // The package index
     baseon_total: Vec<HashMap<String, Vec<String>>>, // The package baseon
     pkg_version_index: Vec<String>,   // The package version
-    pkg_sha256sums_index: Vec<String>,  // The package sha256
+    pkg_sha256sums_index: Vec<String>, // The package sha256
     pkgindex: HashMap<String, PkgInfo>, // The package index
     fetch_index: Vec<String>,         // The package to fetch
     file_index: Vec<String>,          // The package to fetch
+    workdir_index: Vec<String>,       // The workdir index
 }
 
 // Define Install Public Data
@@ -94,20 +87,22 @@ impl InstallData {
             pkgindex: HashMap::new(),
             fetch_index: vec![],
             file_index: vec![],
+            workdir_index: vec![],
         }
     }
 
-    pub fn step1_explain_pkg(&mut self, pkglist: Vec<String>) {
+    pub fn step1_explain_pkg(&mut self, pkglist: &[String]) {
         let color = Color::new();
         print!("{}: Reading package index... ", color.info);
+        io::stdout().flush().unwrap();
 
         // Stage 1: Explain the package
         // First, load configuration and get its HashMap
         match readcfg() {
             Err(e) => {
-                println!("{}", color.error);
-                println!("{}: {}", color.error, e);
-                println!(
+                println!("{}", color.failed);
+                eprintln!("{}: {}", color.error, e);
+                eprintln!(
                     "{}: Consider using this format to write to that file:\n\t{}",
                     color.note,
                     "[reponame] = [repourl]".cyan()
@@ -127,9 +122,9 @@ impl InstallData {
             // If index not exist, just quit
             if !Path::new(&repopath).exists() {
                 if errtime == 0 {
-                    println!("{}", color.error);
+                    println!("{}", color.failed);
                 }
-                println!(
+                eprintln!(
                     "{}: Repository index \"{}\" not found",
                     color.error, reponame
                 );
@@ -137,7 +132,7 @@ impl InstallData {
             }
         }
         if errtime > 0 {
-            println!(
+            eprintln!(
                 "{}: use \"{}\" to download it.",
                 color.tip,
                 "mcospkg-mirror update".cyan()
@@ -151,12 +146,12 @@ impl InstallData {
             let indexpath = format!("/etc/mcospkg/database/remote/{}.json", reponame);
             let index_raw = std::fs::read_to_string(&indexpath).unwrap();
             let index: PkgIndex = serde_json::from_str(&index_raw).unwrap_or_else(|_| {
-                println!("{}", color.error);
-                println!(
+                println!("{}", color.failed);
+                eprintln!(
                     "{}: Invaild PKGINDEX format (In repository \"{}\")",
                     color.error, &reponame
                 );
-                println!(
+                eprintln!(
                     "{}: Consider update the mirrorlist/mcospkg or contact the repository author.",
                     color.note
                 );
@@ -176,10 +171,10 @@ impl InstallData {
         }
 
         // Main of this stage - Compare user input ("pkglist") and pkgindex
-        for pkg in &pkglist {
+        for pkg in pkglist {
             if !self.pkgindex.contains_key(pkg) {
-                println!("{}", color.error);
-                println!(
+                println!("{}", color.failed);
+                eprintln!(
                     "{}: Package \"{}\" not found in any repositories.",
                     color.error, pkg
                 );
@@ -189,9 +184,10 @@ impl InstallData {
         println!("{}", color.done);
     }
 
-    pub fn step2_check_deps(&mut self, pkglist: Vec<String>) {
+    pub fn step2_check_deps(&mut self, pkglist: &[String]) {
         let color = Color::new();
         print!("{}: Checking package dependencies... ", color.info);
+        io::stdout().flush().unwrap();
 
         // Stage 2: Check the packages' dependencies
         // To check it, we need to use the baseon_total
@@ -199,47 +195,55 @@ impl InstallData {
         // First, we need to check if the package is exist in the baseon_total
         // If it is exist, we need to check if the package is exist in the baseon_total
         let mut baseon: HashMap<String, Vec<String>> = HashMap::new(); // The first string is the package name, and the second is the dependencies
-        for (i, _) in self.baseon_total.iter().enumerate() {
-            baseon.extend(self.baseon_total[i].clone());
-        }
+        baseon.extend(self.baseon_total.iter().cloned().flatten());
+
+        let mut visited = HashSet::new(); // Will record the deps of checked.
         // Generate a vector to record the packages that need dependencies
-        let mut need_dependencies: Vec<String> = Vec::new(); // This will record them
-        for pkg in &pkglist {
-            if baseon.contains_key(pkg) {
-                need_dependencies.push(pkg.clone());
-            }
-        }
+        let need_dependencies: Vec<String> = pkglist
+            .iter()
+            .filter(|&pkg| baseon.contains_key(pkg))
+            .cloned()
+            .collect();
+
         // Next, we need to check if the dependencies is exist in the pkgindex
         // If it is not exist, we need to quit
         for pkg in &need_dependencies {
             for dep in &baseon[pkg] {
                 if !self.pkgindex.contains_key(dep) {
-                    println!("{}", color.error);
-                    println!(
+                    println!("{}", color.failed);
+                    eprintln!(
                         "{}: Invaild package dependencies: \"{}\" (not found in package index)",
                         color.error, dep
                     );
                     exit(1)
+                } else {
+                    self.check_all_dependencies(&dep.clone(), &mut visited);
                 }
             }
         }
 
         // Finally, add them to the "fetch index"
-        for pkg in &pkglist {
-            self.fetch_index.push(pkg.clone());
+        let mut added_pkgs = HashSet::new(); //  Record the package append to fetch_index
+        for pkg in pkglist {
+            if added_pkgs.insert(pkg.clone()) {
+                self.fetch_index.push(pkg.clone());
+            }
         }
 
         for pkg in &need_dependencies {
             for dep in &baseon[pkg] {
-                self.fetch_index.push(dep.clone());
+                if added_pkgs.insert(dep.clone()) {
+                    self.fetch_index.push(dep.clone());
+                    self.check_all_dependencies(dep, &mut added_pkgs);
+                }
             }
         }
         println!("{}", color.done);
     }
 
-    pub fn step3_check_installed(&mut self, reinstall: bool, pkglist: Vec<String>) {
+    pub fn step3_check_installed(&mut self, reinstall: bool) {
         let color = Color::new();
-        print!("{}: Checking if the package is installed... ", color.info);
+        let mut processed_pkgs = HashSet::new();
 
         // Stage 3: Check if the package is installed in the system
         // NOTE: If the "reinstall" = true, pass this stage
@@ -253,8 +257,8 @@ impl InstallData {
         // First, read it
         let binding = fs::read_to_string("/etc/mcospkg/database/packages.toml")
             .unwrap_or_else(|err| {
-                println!("{}", color.error);
-                println!(
+                println!("{}", color.failed);
+                eprintln!(
                     "{}: Cannot read \"/etc/mcospkg/database/packages.toml\": {}",
                     color.error, err
                 );
@@ -264,58 +268,56 @@ impl InstallData {
         let installed_packages = binding.split("\n").collect::<Vec<&str>>();
 
         // Then check
-        let mut errtime = 0;
-        for pkg in &pkglist {
-            let check_pkg = format!("[{}]", &pkg);
+        for pkg in self.fetch_index.clone() {
+            let check_pkg = format!("[{}]", &pkg); // Convert with the TOML format
             if !reinstall {
-                for installed_pkg in installed_packages.clone() {
+                for &installed_pkg in installed_packages.as_slice() {
                     if installed_pkg == check_pkg {
-                        if errtime == 0 {
-                            println!("{}", color.error);
+                        if processed_pkgs.insert(pkg.clone()) {
+                            println!(
+                                "{}: Package \"{}\" has installed, but it's not reinstall mode now, ignored.",
+                                color.warning, pkg,
+                            );
                         }
-                        println!(
-                            "{}: Package \"{}\" has installed, cannot reinstall it without \"reinstall\" mode",
-                            color.error,
-                            pkg,
-                        );
-                        errtime += 1;
+                        if let Some(index) = self.fetch_index.iter().position(|x| *x == *pkg) {
+                            self.fetch_index.remove(index);
+                        }
                     } else {
                         continue;
                     }
                 }
             }
         }
-
-        if errtime > 0 {
-            println!(
-                "{}: To reinstall it, please append an argument \"{}\" after the command.",
-                color.note,
-                "-r".cyan()
-            );
-            exit(1);
-        }
-        println!("{}", color.done);
     }
 
     pub fn step4_download(&mut self, bypass_ask: bool) {
         let color = Color::new();
+        let len = self.fetch_index.len();
 
         // Stage 4: Download the package
-        // First, get package's version
+        // If len == 0, it means that no package will be installed.
+        // Have a check :0
+        if len == 0 {
+            eprintln!("{}: No any package will be installed.", color.error);
+            eprintln!(
+                "{}: Maybe some packages has been ignored? If yes, add the argument \"{}\".",
+                color.tip,
+                "-r".cyan()
+            );
+            exit(1)
+        }
+
         // Then, we need to ask user that if they want to install it
-        println!(
-            "{}: The following packages is being installed:",
-            color.info
-        );
-        let len = self.fetch_index.len();
-        for (i, pkg) in self.fetch_index.clone().into_iter().enumerate() {
+        println!("{}: The following packages is being installed:", color.info);
+
+        for (i, pkg) in self.fetch_index.as_slice().into_iter().enumerate() {
             // Get each package's version
-            let pkg_version = self.pkgindex.get(&pkg).unwrap().version.clone();
+            let pkg_version = self.pkgindex.get(pkg).unwrap().version.clone();
             self.pkg_version_index.push(pkg_version.clone());
 
             // Get each package's sha256
-            let pkg_sha256sums = self.pkgindex.get(&pkg).unwrap().sha256sums.clone();
-            self.pkg_sha256sums_index.push(pkg_sha256sums.clone());
+            let pkg_sha256sums = self.pkgindex.get(pkg).unwrap().sha256sums.clone();
+            self.pkg_sha256sums_index.push(pkg_sha256sums);
             // Print the package list
             if i < len - 1 {
                 print!("{} ({}), ", pkg, pkg_version);
@@ -331,7 +333,7 @@ impl InstallData {
                 .interact_text()
                 .unwrap();
             if input != "y" && input != "Y" {
-                println!("{}: User rejected the installation request", color.error);
+                eprintln!("{}: User rejected the installation request", color.error);
                 exit(1);
             }
         } else {
@@ -348,7 +350,7 @@ impl InstallData {
         if !Path::new(cache_path).exists() {
             std::fs::create_dir(cache_path).unwrap();
         } else if !Path::new(cache_path).is_dir() {
-            println!(
+            eprintln!(
                 "{}: The cache path is not a directory. Please make it to a dir",
                 color.error
             );
@@ -367,57 +369,50 @@ impl InstallData {
         // So, we need to download the package file and store it in the cache path
         // How to download? use the library we've imported - download.
         // Define something
-        let mut pkg_msgs: Vec<&'static str> = Vec::new(); // This will record the message of downloading
 
-        for pkgname in &self.fetch_index {
-            let pkg_msg = format!("{}", pkgname);
-            let pkg_msg = Box::leak(pkg_msg.into_boxed_str());
-            pkg_msgs.push(pkg_msg);
-        }
-
-        for (pkg, msg) in self
+        // This will record the message of downloading
+        let pkg_msgs: Vec<Message> = self
             .fetch_index
-            .clone()
+            .as_slice()
             .into_iter()
-            .zip(pkg_msgs.into_iter())
-            .clone()
-        {
-            // Get the repo url
-            let repo_url = self.url_total.iter().next().unwrap().clone();
+            .cloned()
+            .map(Message::from)
+            .collect();
 
-            // And, get the pkg name
-            let pkg_name = pkg.clone();
+        for (pkg, msg) in self.fetch_index.as_slice().into_iter().zip(pkg_msgs) {
+            // Get the repo url
+            let repo_url = self.url_total.iter().next().unwrap();
 
             // And, get the pkg file
-            let pkg_file = self.pkgindex.get(&pkg).unwrap().filename.clone();
+            let pkg_file = &self.pkgindex.get(pkg).unwrap().filename;
 
             // Now, we need to generate its path and url
-            let pkg_url = format!("{}/{}/{}", repo_url, pkg_name, pkg_file);
+            let pkg_url = format!("{}/{}/{}", repo_url, pkg, pkg_file);
             let pkg_path = format!("{}/{}", cache_path, pkg_file);
 
             // Download the package
             let mut errtime: u32 = 0;
-            if let Err(e) = download(pkg_url, pkg_path.clone(), &msg) {
-                println!("{}: {}", color.error, e);
+            if let Err(e) = download(&pkg_url, &pkg_path, msg) {
+                eprintln!("{}: {}", color.error, e);
                 errtime += 1;
             }
 
             if errtime > 0 {
-                println!(
+                eprintln!(
                     "{}: Cannot download some packages, installation abort.",
                     color.error
                 );
-                println!(
+                eprintln!(
                     "{}: Please check your network connection or contact the author",
                     color.note
                 );
                 exit(1);
             }
             // And, add it to the file index - use it later
-            self.file_index.push(pkg_path.clone());
+            self.file_index.push(pkg_path);
         }
     }
-    
+
     pub fn step5_check_sums(&mut self) {
         let color = Color::new();
 
@@ -426,88 +421,129 @@ impl InstallData {
         // All sums are stored in "self.pkg_sha256sums_total",
         // so we'll get it first.
         println!("{}: Checking SHA256 sums...", color.info);
-        println!("========Results========");    // Begin message
 
         // Get each sha256sums
         let mut errtime: u32 = 0;
         for (sha256, pkg) in self
             .pkg_sha256sums_index
-            .clone()
+            .as_slice()
             .into_iter()
-            .zip(self.fetch_index.clone().into_iter())
-            .clone()
+            .zip(self.fetch_index.as_slice())
         {
-            print!("{} \"{}\": ", "Vaildating package".cyan().bold(), pkg.clone());
+            print!("{} \"{}\": ", "Package".bold(), pkg.cyan().bold());
+            io::stdout().flush().unwrap();
             // First, get the file's sha256 intergrity.
             // Get the file name
-            let file = self.pkgindex.get(&pkg).unwrap().filename.clone();
+            let file = &self.pkgindex.get(pkg).unwrap().filename;
             // Get the full path
             let full_path = format!("/var/cache/mcospkg/{}", file);
             // Then calculate its sums
             let file_sums = Self::vaildate_sums(&full_path).unwrap();
             // Check
-            if file_sums != sha256 {
+            if &file_sums != sha256 {
                 println!("{}", color.no);
                 errtime += 1;
             } else {
                 println!("{}", color.ok);
             }
         }
-        println!("======================"); // End message
 
         if errtime > 0 {
-            println!("{}: {} packages does not pass the vaildating.", color.error, errtime);
+            println!(
+                "{}: {} packages does not pass the vaildating.",
+                color.error, errtime
+            );
             exit(1)
         }
     }
 
-    pub fn step6_install(&mut self) {
+    pub fn step6_extract(&mut self) {
+        let color = Color::new();
+        println!("{}: Extracting packages... ", color.info);
+
+        // Stage 6: Extract the package
+        // In the installation, we needs to extract the packages, is it [doge]
+        // and we needs to extract it to a defined place,
+        // Such as /var/cache/mcospkg (dafault)
+        // In it, we only needs to use 1 function, use it later.
+
+        // Iterate the id and path
+        for (id, path) in self
+            .fetch_index
+            .as_slice()
+            .into_iter()
+            .zip(self.file_index.as_slice())
+        {
+            print!("{} \"{}\"... ", "Extracting".bold(), id.cyan().bold());
+            io::stdout().flush().unwrap();
+            let workdir = extract(&path).unwrap_or_else(|err| {
+                println!("{}", color.failed);
+                eprintln!("{}: Cannot extract packages: {}", color.error, err);
+                exit(1)
+            });
+            println!("{}", color.done);
+            self.workdir_index.push(workdir);
+        }
+    }
+
+    pub fn step7_install(&mut self) {
         let color = Color::new();
         println!("{}: Installing packages... ", color.info);
 
-        // Stage 6: Install the package
-        // My friend, Xiaokuai, uses C to write the install library.
+        // Stage 7: Install the package
+        // My friend, Xiaokuai, Helps me to write the install library.
         // I'll thank him at here :)
-        // So, we need to use the C library to install the package
-        // First, we need to convert the string to CString
-        let mut c_file_index: Vec<CString> = Vec::new(); // Record the index, we'll use it
-    
-        // Convert the string to CString
-        for filepath in &self.file_index {
-            let c_pkg = CString::new(filepath.clone()).unwrap();
-            c_file_index.push(c_pkg);
-        }
-        // Convert version_total to CString
-        let mut c_version_total: Vec<CString> = Vec::new();
-        for version in &self.pkg_version_index {
-            let c_version = CString::new(version.clone()).unwrap();
-            c_version_total.push(c_version);
-        }
-        // Then, we need to use the C library to install the package
-        let version_and_file = c_file_index.iter().zip(c_version_total.iter());
-        for (pkg, c_version) in version_and_file {
-            let c_pkg_name = CString::new(
-                pkg.to_str()
-                    .unwrap()
-                    .split("/")
-                    .last()
-                    .unwrap()
-                    .split("-")
-                    .next()
-                    .unwrap(),
-            )
-            .unwrap();
-            let c_pkg_path = CString::new(pkg.to_str().unwrap()).unwrap();
-            let status = unsafe {
-                install_pkg(
-                    c_pkg_path.as_ptr(), 
-                    c_pkg_name.as_ptr(), 
-                    c_version.as_ptr()
-                )
-            };
-            if status != 0 {
-                println!("{}: The installation didn't exit normally.", color.error);
+        // So, we need to use hsi library to install the package
+        // First, get the dependencies
+        let mut dependencies: Vec<Vec<String>> = Vec::new();
+        let length_baseon = self.baseon_total.len();
+        let length_fetch_index = self.fetch_index.len();
+        for i in 0..length_baseon {
+            let map = &self.baseon_total[i];
+            for j in 0..length_fetch_index {
+                let pkg = &self.fetch_index[j];
+                if let Some(deps) = map.get(pkg) {
+                    dependencies.push(deps.clone());
+                } else {
+                    dependencies.push(Vec::new());
+                }
             }
+        }
+
+        // Make sure the length is the same or larger than others
+        for _ in length_baseon..self.baseon_total.len() {
+            dependencies.push(Vec::new());
+        }
+
+        for _ in length_baseon..self.fetch_index.len() {
+            dependencies.push(Vec::new());
+        }
+
+        // Then, convert them to struct "Package".
+        // Make 3 vectors as 1 vector
+        let packages = Package::from_vec(
+            self.fetch_index.clone(),
+            self.file_index.clone(),
+            dependencies,
+            self.pkg_version_index.clone(),
+        );
+
+        // Since then, we will set up a interrupt handler.
+        let workdirs_clone = self.workdir_index.clone();
+        let _ = set_handler(move || {
+            eprintln!("{}: Got interrupt signal, cleaning up...", color.warning);
+            // Use the cloned workdir
+            for workdir in &workdirs_clone {
+                fs::remove_dir_all(workdir).unwrap();
+            }
+        });
+
+        let status = rust_install_pkg(&packages, &self.workdir_index);
+        if let Err(error) = status {
+            eprintln!(
+                "{}: The installation has received an error, \"{:?}\".",
+                color.error, error
+            );
         }
     }
 
@@ -522,5 +558,39 @@ impl InstallData {
         hasher.update(&buffer);
         let result = hasher.finalize();
         Ok(hex::encode(result))
+    }
+
+    fn check_all_dependencies(&mut self, dep: &str, added_pkgs: &mut HashSet<String>) {
+        // Check is the deps has processed
+        if added_pkgs.contains(dep) {
+            return;
+        }
+        added_pkgs.insert(dep.to_string());
+
+        // Get the next deps
+        let sub_deps: Vec<String> = self
+            .baseon_total
+            .iter()
+            .flat_map(|m| m.get(dep).map(|v| v.clone()).unwrap_or_default())
+            .collect();
+        for sub_dep in sub_deps {
+            if !self.pkgindex.contains_key(&sub_dep) {
+                let color = Color::new();
+                println!("{}", color.failed);
+                eprintln!(
+                    "{}: Dependency \"{}\" of \"{}\" has an invalid sub - dependency \"{}\".",
+                    color.error,
+                    dep,
+                    self.fetch_index.last().unwrap(),
+                    sub_dep
+                );
+                exit(1);
+            } else {
+                if added_pkgs.insert(sub_dep.clone()) {
+                    self.fetch_index.push(sub_dep.clone());
+                }
+                self.check_all_dependencies(&sub_dep, added_pkgs);
+            }
+        }
     }
 }

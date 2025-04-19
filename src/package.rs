@@ -24,9 +24,10 @@
 mod config;
 use clap::{Parser, Subcommand};
 use config::VERSION;
-use mcospkg::Color;
-use mcospkg::{install_pkg, remove_pkg};
-use std::ffi::CString;
+use is_root::is_root;
+use mcospkg::{Color, Package};
+use mcospkg::{extract, rust_install_pkg, rust_remove_pkg};
+use std::process::exit;
 
 // Define args
 #[derive(Parser, Debug)]
@@ -45,11 +46,11 @@ enum Operations {
         #[arg(required = true, help = "The package ID")]
         package_id: String,
 
-        #[arg(required = true, help = "The version of the package")]
-        package_version: String,
-
         #[arg(required = true, help = "The package path")]
         package_path: String,
+
+        #[arg(required = true, help = "The version of the package")]
+        package_version: String,
     },
 
     // The remove option
@@ -64,6 +65,19 @@ fn main() {
     let args = Args::parse();
     let color = Color::new();
 
+    // Make sure that it runs on root privilege
+    if !is_root() {
+        eprintln!(
+            "{}: You must run this program with root privileges.",
+            color.error
+        );
+        eprintln!(
+            "{}: Did you forget to add \"sudo\" in front of the command? :)",
+            color.tip
+        );
+        exit(1);
+    }
+
     // Match it
     match args.operation {
         Operations::Install {
@@ -71,24 +85,39 @@ fn main() {
             package_version,
             package_path,
         } => {
-            let package_path = CString::new(package_path).unwrap();
-            let package_version = CString::new(package_version).unwrap();
-            let package_id = CString::new(package_id).unwrap();
-            let status = unsafe {
-                install_pkg(
-                    package_path.as_ptr(),
-                    package_id.as_ptr(),
-                    package_version.as_ptr(),
-                )
-            };
-            if status != 0 {
-                println!("{}: Installation failed with code: {}", color.error, status);
+            // Make it to a struct
+            let packages = &[Package::new(
+                package_id,
+                package_path.clone(),
+                vec![],
+                package_version,
+            )];
+
+            // Then extract
+            let workdir = &[extract(&package_path).unwrap_or_else(|error| {
+                eprintln!("{}: Cannot extract package: {}", color.error, error);
+                exit(1)
+            })];
+
+            // Finally use this function
+            let status = rust_install_pkg(packages, workdir);
+            if let Err(error) = status {
+                eprintln!(
+                    "{}: The installation failed with code: {:?}",
+                    color.error, error
+                );
+                exit(error.into())
             }
         }
         Operations::Remove { package_id } => {
-            let package_id = CString::new(package_id).unwrap();
-            unsafe {
-                remove_pkg(package_id.as_ptr());
+            let packages = &[package_id];
+            let status = rust_remove_pkg(packages);
+            if let Err(error) = status {
+                eprintln!(
+                    "{}: The uninstallation failed with code: {:?}",
+                    color.error, error
+                );
+                exit(error.into())
             }
         }
     }

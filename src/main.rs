@@ -37,11 +37,13 @@ mod main {
     pub mod remove;
 }
 mod config;
+use clap::{Parser, Subcommand};
 use config::VERSION;
+use is_root::is_root;
 use main::install;
 use main::remove;
-use clap::{Parser, Subcommand};
 use mcospkg::Color;
+use std::process::exit;
 
 // ========structs define area=========
 
@@ -63,18 +65,16 @@ enum Operations {
     #[command(about = "Install the package(s).")]
     Install {
         // Get packages
-        #[arg(
-            required = true,
-            help = "The package(s) you want to install"
-        )]
+        #[arg(required = true, help = "The package(s) you want to install")]
         packages: Vec<String>,
-        
+
         // And should we bypass asking
         #[arg(
             long = "bypass",
             short = 'y',
             default_value_t = false,
-            help = "Specify it will not ask ANY questions"            )]
+            help = "Specify it will not ask ANY questions"
+        )]
         bypass_ask: bool,
 
         // And should we reinstall it
@@ -91,10 +91,7 @@ enum Operations {
     #[command(about = "Remove the package(s).")]
     Remove {
         // Get packages
-        #[arg(
-            required = true,
-            help = "The package(s) you want to remove"
-        )]
+        #[arg(required = true, help = "The package(s) you want to remove")]
         packages: Vec<String>,
 
         // And should we bypass asking
@@ -102,17 +99,43 @@ enum Operations {
             long = "bypass",
             short = 'y',
             default_value_t = false,
-            help = "Specify it will not ask ANY questions")]
+            help = "Specify it will not ask ANY questions"
+        )]
         bypass_ask: bool,
-    }
+    },
 }
 
 // ========functions define area==========
 fn main() {
+    let color = Color::new();
+
+    // Parse arguments
     let args = Args::parse();
+
+    // Make sure that the user is root.
+    if !is_root() {
+        eprintln!(
+            "{}: You must run this program with root privileges.",
+            color.error
+        );
+
+        eprintln!(
+            "{}: Did you forget to add \"sudo\" in front of the command? :)",
+            color.tip
+        );
+        exit(1);
+    }
+
     match args.operation {
-        Operations::Install {packages, bypass_ask, reinstall} => install(packages, bypass_ask, reinstall),
-        Operations::Remove {packages, bypass_ask} => remove(packages, bypass_ask),
+        Operations::Install {
+            packages,
+            bypass_ask,
+            reinstall,
+        } => install(packages, bypass_ask, reinstall),
+        Operations::Remove {
+            packages,
+            bypass_ask,
+        } => remove(&packages, bypass_ask),
     };
 }
 
@@ -129,13 +152,13 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
     let mut install_data = install::InstallData::new();
 
     // Stage 1: Get the pkgindex from the repositories
-    install_data.step1_explain_pkg(pkglist.clone()); // Stage 2: Check if the package is exist
+    install_data.step1_explain_pkg(&pkglist); // Stage 2: Check if the package is exist
 
     // Stage 2: Check the packages' dependencies
-    install_data.step2_check_deps(pkglist.clone());
+    install_data.step2_check_deps(&pkglist);
 
     // Stage 3: Check if package is installed
-    install_data.step3_check_installed(reinstall, pkglist.clone());
+    install_data.step3_check_installed(reinstall);
 
     // Stage 4: Download the package
     install_data.step4_download(bypass_ask);
@@ -143,8 +166,11 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
     // Stage 5: Check sha256sums integrity
     install_data.step5_check_sums();
 
-    // Stage 6: Install the package
-    install_data.step6_install();
+    // Stage 6: Extract the package
+    install_data.step6_extract();
+
+    // Stage 7: Install the package
+    install_data.step7_install();
 
     // And, that's complete!
 }
@@ -153,7 +179,7 @@ fn install(pkglist: Vec<String>, bypass_ask: bool, reinstall: bool) {
 // =====S====P====L====I====T=====
 // This is the remove function
 
-fn remove(pkglist: Vec<String>, bypass_ask: bool) {
+fn remove(pkglist: &[String], bypass_ask: bool) {
     // Init the RemoveData struct
     let mut remove_data = remove::RemoveData::new();
 
@@ -161,7 +187,7 @@ fn remove(pkglist: Vec<String>, bypass_ask: bool) {
     remove_data.step1_explain_pkg();
 
     // Stage 2: Check the dependencies
-    remove_data.step2_check_deps(pkglist.clone());
+    remove_data.step2_check_deps(&pkglist);
 
     // Stage 3: Ask user
     remove_data.step3_ask_user(bypass_ask);
