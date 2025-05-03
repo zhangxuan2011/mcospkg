@@ -167,11 +167,12 @@ pub extern "C" fn c_remove_pkg(package_name: *const c_char) -> c_int {
 /// ```rust
 /// use mcospkg::Package;
 ///
-/// let package = Package {
-///     id: String::from("python"),
-///     path: String::from("/path/to/python.tar.xz"),
-///     version: String::from("3.12.8"),
-/// };
+/// let package = Package::new(
+///     String::from("python"), // Package name
+///     String::from("/path/to/package.tar.xz"),    // Package path
+///     vec![String::new()],    // The deps, it's empty here
+///     String::from("3.12.8") // Package version
+/// );
 /// // more options...
 ///
 /// ```

@@ -16,24 +16,26 @@
 /// // Define some basic information
 /// let name = String::from("example");  // Package ID
 /// let path = String::from("/path/to/pkg"); // Package path
+/// let dependencies = vec![String::new()];  // Dependencies
 /// let version = String::from("0.1.0");    // Package version
 ///
 /// // Install package
-/// let package = Package {
-///     id: name.clone(),
+/// let package = Package::new(
+///     name.clone(),
 ///     path,
+///     dependencies,
 ///     version,
-/// };  // Convert to the struct "Package"
+/// );  // Convert to the struct "Package"
 ///
 /// let packages: Vec<Package> = vec![package]; // Append it to Vector
 ///
-/// let _ = rust_install_pkg(packages); // Use it, will return i32
+/// let _ = rust_install_pkg(&packages, &["/path/to/workdir".to_string()]); // Use it, will return i32
 ///
 /// // Next, remove it.
 /// let packages: Vec<String> = vec![name];
 ///
 /// // Use it
-/// let _ = rust_remove_pkg(packages);
+/// let _ = rust_remove_pkg(&packages);
 ///
 /// ```
 ///
